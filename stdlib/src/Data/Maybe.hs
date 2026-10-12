@@ -57,7 +57,7 @@ maybe = maybe
 -- === __Specification:__
 --
 -- @
--- isJust (Just a) = True
+-- isJust (Just _) = True
 -- isJust Nothing  = False
 -- @
 isJust :: Maybe a -> Bool
@@ -92,7 +92,7 @@ fromJust = fromJust
 --
 -- @
 -- fromMaybe d Nothing  = d
--- fromMaybe d (Just a) = a
+-- fromMaybe _ (Just a) = a
 -- @
 fromMaybe :: a -> Maybe a -> a
 fromMaybe = fromMaybe

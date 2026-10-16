@@ -8,10 +8,15 @@ report's own format, Typst.
 ## Contents
 
 - `ott/expressions.ott`: Chapter 3. Abstract syntax of expressions, patterns,
-  qualifiers, statements and bindings, with the precedence of the concrete
-  grammar given as Ott `parsing` priorities. The translation identities from the
-  chapter's "Translation" boxes (§3.4–3.11) are axioms of a judgement
-  `e1 == e2`, with side conditions such as `x notin fv(e)` as premises.
+  qualifiers, case alternatives with guards, statements and bindings, with the
+  precedence of the concrete grammar given as Ott `parsing` priorities. The
+  translation identities are axioms of a judgement `e1 === e2`, with side
+  conditions such as `x notin fv(e)` or `v fresh` as premises. They cover the
+  "Translation" boxes of §3.3–3.14 (lambda, operators, sections, conditionals,
+  lists, arithmetic sequences, list comprehensions, `let`, `do`) and the formal
+  semantics of `case` in Figures 3.1–3.3 (rules (a)–(v), as `case_a` …
+  `case_v`). Every rule has exactly one parse
+  (`ott -picky_multiple_parses true`).
 - `doc/expressions.src.typ`: excerpts of Chapter 3 that use the generated
   definitions. `[[ ... ]]` quotations are parsed by Ott as Haskell and replaced
   with Typst math.
@@ -33,10 +38,37 @@ This writes the following files to `build/`:
 - `expressions.pdf`: the whole formalisation
 - `expressions.doc.pdf`: the Chapter 3 excerpts
 
+## Differences from the report
+
+- Ott dot forms cannot express nested ellipses such as
+  `case v of { p1 match1 ; _ -> ... case v of { pn matchn ; _ -> e } ... }`.
+  Rules (b), (c), (g) and (s) are therefore restated as one-step identities
+  that unfold to the report's nested form:
+  - (b) is `case_b`, which peels off one alternative, and `case_b_last`, which
+    adds the final `_ -> error "No match"`. `case_b_true` is the remark that
+    `True` is substituted for missing guards.
+  - (c) is `case_c`, and `case_c_next` unfolds the guarded right-hand sides one
+    at a time.
+  - (g) matches the sub-patterns with pattern guards
+    `() | p1 <- x1, ..., pn <- xn`, which (s) and (t) turn into the report's
+    nested cases, left to right.
+  - (s) peels off one guard.
+- Side conditions are formulas rather than prose: `fresh` for "a new variable",
+  `{x1, ..., xn} = vars(p)`, `fieldpats(K, f, p)` for the patterns of rule (n),
+  and `wildcards(K)` for those of rule (o). The arities in rules (p)–(r) are the
+  lengths of the dot forms.
+- Declarations always have braces, so the report's `let p = e1 in e0` is written
+  `let { p = e1 } in e0`.
+- Prelude names such as `negate`, `True` and `concatMap` are lexemes of the
+  variable and constructor metavariables, not distinguished constants. `ok` is
+  one too, with an explicit `ok fresh` premise.
+- `e @@ e1 ... en` is an iterated application, typeset as juxtaposition. The
+  invisible `@@` keeps it from overlapping with `e1 e2`.
+
 ## Not covered yet
 
-- Guards, `where` clauses and the full declaration syntax. `decl` has only
-  function and pattern bindings.
-- The translations of `let`, `case`, `do` and labelled fields, and of literals.
+- The full declaration syntax and its translation to pattern bindings
+  (§4.4.3). `decl` has only function and pattern bindings.
+- The translations of labelled fields (§3.15) and literals (§3.2).
 - Types and contexts, which appear only as the placeholder `T`.
 - Layout and fixity resolution (Chapter 10). The grammar here is abstract.

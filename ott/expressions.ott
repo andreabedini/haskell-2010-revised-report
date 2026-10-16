@@ -1,10 +1,12 @@
 % Haskell 2010 (revised): Chapter 3, Expressions.
 %
 % Abstract syntax of expressions and the translation identities that
-% Chapter 3 states in its "Translation" boxes.  The precedence levels of
-% the concrete grammar (exp / infixexp / lexp / fexp / aexp) are
-% collapsed into a single nonterminal: they only matter for parsing,
-% which Chapter 10 specifies separately (layout, fixity resolution).
+% Chapter 3 states in its "Translation" boxes, together with the formal
+% semantics of case expressions (Figures 3.1-3.3).  The precedence
+% levels of the concrete grammar (exp / infixexp / lexp / fexp / aexp)
+% are collapsed into a single nonterminal: they only matter for
+% parsing, which Chapter 10 specifies separately (layout, fixity
+% resolution).
 
 embed {{ typst-preamble
 // Report style: keywords and symbols as code, and translation
@@ -21,25 +23,28 @@ embed {{ typst-preamble
 #let ottusedrule(r, categories: ()) = block(spacing: 0.8em, r)
 }}
 
-metavar var, x, f ::=
+metavar var, x, f, v, y ::=
   {{ com variable }} {{ lex alphanum0 }} {{ typstvar mono([[var]]) }}
 metavar con, K ::=
-  {{ com constructor }} {{ lex Alphanum }} {{ typstvar mono([[con]]) }}
-metavar op ::=
-  {{ com binary operator }}
+  {{ com data constructor }} {{ lex Alphanum }} {{ typstvar mono([[con]]) }}
+metavar newcon, N ::=
+  {{ com newtype constructor }}
+metavar varsym ::=
+  {{ com operator symbol }}
 metavar literal, lit ::=
-  {{ com literal }} {{ lex numeral }}
+  {{ com numeric, character or string literal }} {{ lex numeral }}
 metavar type, T ::=
   {{ com type (not formalised here) }}
 
-indexvar index, i, j, k, n ::=
+indexvar index, i, j, k, m, n ::=
   {{ com index }} {{ lex numeral }}
 
 grammar
 
 exp, e, b, l :: 'E_' ::=                         {{ com expression }}
   | x                               ::   :: Var        {{ com variable }}
-  | K                               ::   :: Con        {{ com constructor }}
+  | K                               ::   :: Con        {{ com data constructor }}
+  | N                               ::   :: NewCon     {{ com newtype constructor }}
   | lit                             ::   :: Lit        {{ com literal }}
   | ()                              ::   :: Unit       {{ com unit }}
   | []                              ::   :: Nil        {{ com empty list }}
@@ -56,16 +61,31 @@ exp, e, b, l :: 'E_' ::=                         {{ com expression }}
   | ( op )                          ::   :: Op         {{ com operator as a function }}
   | ( e1 , .... , ek )              ::   :: Tuple      {{ com tuple, $k >= 2$ }}
   | [ e1 , ... , ek ]               ::   :: List       {{ com list, $k >= 1$ }}
-  | [ e1 '..' ]                   ::   :: From       {{ com arithmetic sequence }}
-  | [ e1 , e2 '..' ]              ::   :: FromThen   {{ com arithmetic sequence }}
-  | [ e1 '..' e3 ]                ::   :: FromTo     {{ com arithmetic sequence }}
-  | [ e1 , e2 '..' e3 ]           ::   :: FromThenTo {{ com arithmetic sequence }}
+  | [ e1 '..' ]                     ::   :: From       {{ com arithmetic sequence }}
+  | [ e1 , e2 '..' ]                ::   :: FromThen   {{ com arithmetic sequence }}
+  | [ e1 '..' e3 ]                  ::   :: FromTo     {{ com arithmetic sequence }}
+  | [ e1 , e2 '..' e3 ]             ::   :: FromThenTo {{ com arithmetic sequence }}
   | [ e | Q ]                       ::   :: Comp       {{ com list comprehension }}
   | ( e op )                        ::   :: LSection   {{ com left section }}
   | ( op e )                        ::   :: RSection   {{ com right section }}
   | K { fbind1 , .. , fbindn }      ::   :: RecCon     {{ com labeled construction }}
   | e { fbind1 , ... , fbindn }     ::   :: RecUpd     {{ com labeled update }}
+  | "..."                           ::   :: FailMsg    {{ com compiler-generated error message }}
+  | "No match"                      ::   :: NoMatch    {{ com the error message of a failed case }}
+                                                       {{ tex \texttt{"No match"} }}
+                                                       {{ typst ottsym("\"No match\"") }}
+  | bot                             ::   :: Bot        {{ com divergence (a semantic value) }}
+                                                       {{ tex \bot }} {{ typst bot }}
+  % The invisible marker @@ keeps this list form apart from e1 e2:
+  % without it every application would have several parses.
+  | e @@ e1 ... en                  :: M :: Apps       {{ com nested applications $e e_1 dots e_n$ }}
   | e1 : ... : ek : []              :: M :: Conses     {{ com nested applications of (:) }}
+
+op :: 'Op_' ::=                                  {{ com binary operator }}
+  | varsym                          ::   :: Sym        {{ com operator symbol }}
+  | >>                              ::   :: Then       {{ com from class Monad }}
+  | >>=                             ::   :: Bind       {{ com from class Monad }}
+  | ==                              ::   :: Eq         {{ com from class Eq }}
 
 quals, Q :: 'Q_' ::=                             {{ com qualifiers }}
   | q                               ::   :: One
@@ -77,7 +97,24 @@ qual, q :: 'Qual_' ::=                           {{ com qualifier }}
   | e                               ::   :: Guard      {{ com boolean guard }}
 
 alt :: 'Alt_' ::=                                {{ com case alternative }}
-  | p -> e                          ::   :: Alt
+  | p match                         ::   :: Alt
+
+match :: 'Match_' ::=                            {{ com right-hand side of an alternative }}
+  | -> e                            ::   :: Plain
+  | -> e where decls                ::   :: PlainWhere
+  | gdrhs1 ... gdrhsn               ::   :: Guarded
+  | gdrhs1 ... gdrhsn where decls   ::   :: GuardedWhere
+
+gdrhs :: 'GdRhs_' ::=                            {{ com guarded right-hand side }}
+  | '|' gs -> e                     ::   :: GdRhs
+
+guards, gs :: 'Guards_' ::=                      {{ com guards }}
+  | g1 , ... , gn                   ::   :: Guards
+
+guard, g :: 'Guard_' ::=                         {{ com guard }}
+  | p <- e                          ::   :: Pat        {{ com pattern guard }}
+  | let decls                       ::   :: Let        {{ com local declaration }}
+  | e                               ::   :: Bool       {{ com boolean guard }}
 
 stmts :: 'Stmts_' ::=                            {{ com statements }}
   | e                               ::   :: Last
@@ -102,12 +139,18 @@ pat, p :: 'P_' ::=                               {{ com pattern }}
   | x                               ::   :: Var        {{ com variable }}
   | _                               ::   :: Wild       {{ com wildcard }}
   | lit                             ::   :: Lit        {{ com literal }}
+  | ()                              ::   :: Unit       {{ com unit pattern }}
   | K p1 .. pn                      ::   :: Con        {{ com constructor pattern }}
+  | N p                             ::   :: NewCon     {{ com newtype constructor pattern }}
+  | K { fpat1 , .. , fpatn }        ::   :: Rec        {{ com labeled pattern }}
   | x @ p                           ::   :: As         {{ com as pattern }}
   | ~ p                             ::   :: Lazy       {{ com irrefutable pattern }}
   | ( p )                           :: S :: Paren
   | ( p1 , .... , pn )              ::   :: Tuple      {{ com tuple pattern }}
   | [ p1 , .. , pn ]                ::   :: List       {{ com list pattern }}
+
+fpat :: 'FPat_' ::=                              {{ com field pattern }}
+  | f = p                           ::   :: FPat
 
 % Precedence, as in the concrete grammar: application binds tighter
 % than infix operators and negation; lambda, let, if and case extend as
@@ -130,77 +173,236 @@ parsing
 grammar
 
 terminals :: 'terminals_' ::=
-  | '..'                          ::   :: dotdot   {{ tex .. }} {{ typst ottsym("..") }}
-  | ==                              ::   :: equiv      {{ tex \equiv }} {{ typst = }}
+  | '..'                            ::   :: dotdot     {{ tex .. }} {{ typst ottsym("..") }}
+  | ===                             ::   :: equiv      {{ tex = }} {{ typst = }}
   | notin                           ::   :: notin      {{ tex \notin }} {{ typst in.not }}
+  | <>                              ::   :: neq        {{ tex \neq }} {{ typst eq.not }}
+  | fresh                           ::   :: fresh      {{ tex \textrm{fresh} }} {{ typst "fresh" }}
+  | notallvars                      ::   :: notallvars {{ tex \textrm{not all variables} }}
+                                                       {{ typst "not all variables" }}
+  | vars                            ::   :: vars       {{ tex \mathit{vars} }} {{ typst italic("vars") }}
+  | fieldpats                       ::   :: fieldpats  {{ tex \mathit{fieldpats} }} {{ typst italic("fieldpats") }}
+  | @@                              ::   :: apps       {{ tex \, }} {{ typst thin }}
+  | wildcards                       ::   :: wildcards  {{ tex \mathit{wildcards} }} {{ typst italic("wildcards") }}
 
 formula :: 'formula_' ::=
   | judgement                       ::   :: judgement
   | x notin fv ( e )                :: M :: notin
+    {{ com $x$ does not occur free in $e$ }}
     {{ tex [[x]] \notin \mathit{fv}([[e]]) }}
     {{ typst [[x]] in.not italic("fv")([[e]]) }}
+  | vars ( p ) inter fv ( e ) = empty :: M :: disjoint
+    {{ com no variable in $p$ appears free in $e$ }}
+    {{ tex \mathit{vars}([[p]]) \cap \mathit{fv}([[e]]) = \emptyset }}
+    {{ typst italic("vars")([[p]]) inter italic("fv")([[e]]) = emptyset }}
+  | x1 , .. , xn fresh              ::   :: fresh
+    {{ com new variables }}
+  | { x1 , .. , xn } = vars ( p )   ::   :: vars
+    {{ com all the variables in $p$ }}
+  | p1 .. pn notallvars             ::   :: notallvars
+    {{ com at least one of the patterns is not a variable }}
+  | K <> K'                         ::   :: neq
+    {{ com distinct constructors }}
+  | p1 .. pn = fieldpats ( K , f , p ) ::   :: fieldpats
+    {{ com $p_i$ is $p$ if $f$ labels the $i$th component of $K$, and $\_$ otherwise }}
+  | p1 .. pn = wildcards ( K )      ::   :: wildcards
+    {{ com one $\_$ for each component of $K$ }}
 
 defns
 Jtrans :: '' ::=
 
 defn
-e1 == e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
+e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
+
+% Section 3.3, Curried Applications and Lambda Abstractions
+
+  x1 , ... , xn fresh
+  ------------------------------------------------------------------ :: lambda
+  \ p1 ... pn -> e === \ x1 ... xn -> case ( x1 , ... , xn ) of { ( p1 , ... , pn ) -> e }
 
 % Section 3.4, Operator Applications
 
   ------------------------ :: infix
-  e1 op e2 == ( op ) e1 e2
+  e1 op e2 === ( op ) e1 e2
 
   ------------------------ :: negation
-  - e == negate ( e )
+  - e === negate ( e )
 
 % Section 3.5, Sections
 
   x notin fv ( e )
   ------------------------ :: right_section
-  ( op e ) == \ x -> x op e
+  ( op e ) === \ x -> x op e
 
   x notin fv ( e )
   ------------------------ :: left_section
-  ( e op ) == \ x -> e op x
+  ( e op ) === \ x -> e op x
 
 % Section 3.6, Conditionals
 
   ------------------------------------------------------------- :: if
-  if e1 then e2 else e3 == case e1 of { True -> e2 ; False -> e3 }
+  if e1 then e2 else e3 === case e1 of { True -> e2 ; False -> e3 }
 
 % Section 3.7, Lists
 
   -------------------------------- :: list
-  [ e1 , ... , ek ] == e1 : ... : ek : []
+  [ e1 , ... , ek ] === e1 : ... : ek : []
 
 % Section 3.10, Arithmetic Sequences
 
   --------------------------------- :: from
-  [ e1 .. ] == enumFrom e1
+  [ e1 .. ] === enumFrom e1
 
   --------------------------------- :: from_then
-  [ e1 , e2 .. ] == enumFromThen e1 e2
+  [ e1 , e2 .. ] === enumFromThen e1 e2
 
   --------------------------------- :: from_to
-  [ e1 .. e3 ] == enumFromTo e1 e3
+  [ e1 .. e3 ] === enumFromTo e1 e3
 
   --------------------------------- :: from_then_to
-  [ e1 , e2 .. e3 ] == enumFromThenTo e1 e2 e3
+  [ e1 , e2 .. e3 ] === enumFromThenTo e1 e2 e3
 
 % Section 3.11, List Comprehensions
 
   --------------------------------- :: comp_true
-  [ e | True ] == [ e ]
+  [ e | True ] === [ e ]
 
   --------------------------------- :: comp_one
-  [ e | q ] == [ e | q , True ]
+  [ e | q ] === [ e | q , True ]
 
   --------------------------------- :: comp_guard
-  [ e | b , Q ] == if b then [ e | Q ] else []
+  [ e | b , Q ] === if b then [ e | Q ] else []
 
+  ok fresh
   ------------------------------------------------------------------ :: comp_gen
-  [ e | p <- l , Q ] == let { ok p = [ e | Q ] ; ok _ = [] } in concatMap ok l
+  [ e | p <- l , Q ] === let { ok p = [ e | Q ] ; ok _ = [] } in concatMap ok l
 
   --------------------------------- :: comp_let
-  [ e | let decls , Q ] == let decls in [ e | Q ]
+  [ e | let decls , Q ] === let decls in [ e | Q ]
+
+% Section 3.12, Let Expressions.  The declarations have already been
+% translated to pattern bindings (Section 4.4.3).
+
+  ------------------------------------------------------------------ :: let_tuple
+  let { p1 = e1 ; ... ; pn = en } in e0 === let { ( ~ p1 , ... , ~ pn ) = ( e1 , ... , en ) } in e0
+
+  vars ( p ) inter fv ( e1 ) = empty
+  ------------------------------------------------------------------ :: let_case
+  let { p = e1 } in e0 === case e1 of { ~ p -> e0 }
+
+  ------------------------------------------------------------------ :: let_fix
+  let { p = e1 } in e0 === let { p = fix ( \ ~ p -> e1 ) } in e0
+
+% Section 3.14, Do Expressions
+
+  --------------------------------- :: do_last
+  do { e } === e
+
+  --------------------------------- :: do_exp
+  do { e ; stmts } === e >> do { stmts }
+
+  ok fresh
+  ------------------------------------------------------------------ :: do_bind
+  do { p <- e ; stmts } === let { ok p = do { stmts } ; ok _ = fail "..." } in e >>= ok
+
+  --------------------------------- :: do_let
+  do { let decls ; stmts } === let decls in do { stmts }
+
+% Section 3.17.3, Formal Semantics of Pattern Matching (Figures 3.1-3.3).
+%
+% The report writes rules (b), (c), (g) and (s) with nested ellipses
+% ("case ... of { ...; _ -> ... case ... }"), which Ott dot forms
+% cannot express.  They are restated here as one-step identities that
+% unfold to the same nested form: (b) and (c) peel off one alternative
+% or guarded right-hand side at a time, and (g) uses pattern guards,
+% which (s) and (t) then turn into the report's nested cases.
+
+% Figure 3.1
+
+  v fresh
+  ------------------------------------------------------------------ :: case_a
+  case e of { alt1 ; ... ; altn } === ( \ v -> case v of { alt1 ; ... ; altn } ) e
+
+  ------------------------------------------------------------------ :: case_b
+  case v of { p match ; alt1 ; ... ; altn } === case v of { p match ; _ -> case v of { alt1 ; ... ; altn } }
+
+  ------------------------------------------------------------------ :: case_b_last
+  case v of { p match } === case v of { p match ; _ -> error "No match" }
+
+  ------------------------------------------------------------------ :: case_b_true
+  case v of { p -> e where decls ; _ -> e' } === case v of { p | True -> e where decls ; _ -> e' }
+
+  y fresh
+  ------------------------------------------------------------------ :: case_c
+  case v of { p | gs1 -> e1 ... | gsn -> en where decls ; _ -> e' } === case e' of { y -> case v of { p -> let decls in case () of { () | gs1 -> e1 ... | gsn -> en ; _ -> y } ; _ -> y } }
+
+  ------------------------------------------------------------------ :: case_c_next
+  case () of { () | gs -> e | gs1 -> e1 ... | gsn -> en ; _ -> e' } === case () of { () | gs -> e ; _ -> case () of { () | gs1 -> e1 ... | gsn -> en ; _ -> e' } }
+
+  { x1 , ... , xn } = vars ( p )
+  ------------------------------------------------------------------ :: case_d
+  case v of { ~ p -> e ; _ -> e' } === ( \ x1 ... xn -> e ) @@ ( case v of { p -> x1 } ) ... ( case v of { p -> xn } )
+
+  ------------------------------------------------------------------ :: case_e
+  case v of { x @ p -> e ; _ -> e' } === case v of { p -> ( \ x -> e ) v ; _ -> e' }
+
+  ------------------------------------------------------------------ :: case_f
+  case v of { _ -> e ; _ -> e' } === e
+
+% Figure 3.2
+
+  p1 ... pn notallvars
+  x1 , ... , xn fresh
+  ------------------------------------------------------------------ :: case_g
+  case v of { K p1 ... pn -> e ; _ -> e' } === case v of { K x1 ... xn -> case () of { () | p1 <- x1 , ... , pn <- xn -> e ; _ -> e' } ; _ -> e' }
+
+  ------------------------------------------------------------------ :: case_h
+  case v of { lit -> e ; _ -> e' } === if ( v == lit ) then e else e'
+
+  ------------------------------------------------------------------ :: case_i
+  case v of { x -> e ; _ -> e' } === case v of { x -> e }
+
+  ------------------------------------------------------------------ :: case_j
+  case v of { x -> e } === ( \ x -> e ) v
+
+  ------------------------------------------------------------------ :: case_k
+  case ( N v ) of { N p -> e ; _ -> e' } === case v of { p -> e ; _ -> e' }
+
+  ------------------------------------------------------------------ :: case_l
+  case bot of { N p -> e ; _ -> e' } === case bot of { p -> e }
+
+  y fresh
+  ------------------------------------------------------------------ :: case_m
+  case v of { K { f = p , fpat1 , ... , fpatn } -> e ; _ -> e' } === case e' of { y -> case v of { K { f = p } -> case v of { K { fpat1 , ... , fpatn } -> e ; _ -> y } ; _ -> y } }
+
+  p1 ... pn = fieldpats ( K , f , p )
+  ------------------------------------------------------------------ :: case_n
+  case v of { K { f = p } -> e ; _ -> e' } === case v of { K p1 ... pn -> e ; _ -> e' }
+
+  p1 ... pn = wildcards ( K )
+  ------------------------------------------------------------------ :: case_o
+  case v of { K { } -> e ; _ -> e' } === case v of { K p1 ... pn -> e ; _ -> e' }
+
+  K <> K'
+  ------------------------------------------------------------------ :: case_p
+  case ( K' @@ e1 ... em ) of { K x1 ... xn -> e ; _ -> e' } === e'
+
+  ------------------------------------------------------------------ :: case_q
+  case ( K @@ e1 ... en ) of { K x1 ... xn -> e ; _ -> e' } === ( \ x1 ... xn -> e ) @@ e1 ... en
+
+  ------------------------------------------------------------------ :: case_r
+  case bot of { K x1 ... xn -> e ; _ -> e' } === bot
+
+% Figure 3.3
+
+  ------------------------------------------------------------------ :: case_s
+  case () of { () | g , g1 , ... , gn -> e ; _ -> e' } === case () of { () | g -> case () of { () | g1 , ... , gn -> e ; _ -> e' } ; _ -> e' }
+
+  ------------------------------------------------------------------ :: case_t
+  case () of { () | p <- e0 -> e ; _ -> e' } === case e0 of { p -> e ; _ -> e' }
+
+  ------------------------------------------------------------------ :: case_u
+  case () of { () | let decls -> e ; _ -> e' } === let decls in e
+
+  ------------------------------------------------------------------ :: case_v
+  case () of { () | e0 -> e ; _ -> e' } === if e0 then e else e'

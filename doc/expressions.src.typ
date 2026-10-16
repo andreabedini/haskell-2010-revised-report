@@ -1,7 +1,7 @@
 // Excerpts of Chapter 3 of the Haskell 2010 revised report, with the
 // translation identities generated from ott/expressions.ott.
 //
-// This is input to `ott -typst_filter`: every [[ ... ]] is parsed as
+// This is input to `ott -typst_filter`: every double-bracket quotation is parsed as
 // Haskell syntax by Ott and replaced by Typst math.  Compile the
 // filtered build/expressions.doc.typ, not this file.
 
@@ -47,3 +47,29 @@ $q_i$ are qualifiers.
   #ottdrulecompXXgen()
   #ottdrulecompXXlet()
 ]
+
+== Do Expressions
+
+A _do expression_ such as $[[do { p <- e ; stmts }]]$ provides a more
+conventional syntax for monadic programming.
+
+#translation-box[
+  Do expressions satisfy these identities, which may be used as a
+  translation into the kernel, after eliminating empty _stmts_:
+  #ottdruledoXXlast()
+  #ottdruledoXXexp()
+  #ottdruledoXXbind()
+  #ottdruledoXXlet()
+  The ellipsis `"..."` stands for a compiler-generated error message,
+  passed to `fail`; the functions `>>`, `>>=` and `fail` are operations
+  in the class `Monad`, as defined in the Prelude.
+]
+
+== Formal Semantics of Pattern Matching
+
+#figure(caption: [Semantics of Case Expressions, Part 3], block(width: 100%)[
+  #ottdrulecaseXXs()
+  #ottdrulecaseXXt()
+  #ottdrulecaseXXu()
+  #ottdrulecaseXXv()
+])

@@ -1,4 +1,5 @@
 #import "../macros.typ" : *
+#import "../ott/expressions.typ" : *
 
 In this chapter, we describe the syntax and informal semantics of
 Haskell _expressions_, including their translations into the
@@ -214,10 +215,7 @@ The set of patterns must be _linear_---no variable may appear more than once in 
 
 #translation-box(
   [The following identity holds:
-    $
-      mono("\\") p_1 med dots med p_n mono("->") e = mono("\\") x_1 med dots med x_n mono("->") mono("case") (x_1, dots, x_n) mono("of") (p_1, dots, p_n) mono("->") e
-    $
-    where the $x_i$ are new identifiers.]
+    #ottdrulelambda(show-name: false)]
 )
 
 Given this translation combined with the semantics of case
@@ -256,10 +254,8 @@ Similarly, `(-)` is syntax for `\x y -> x-y`, as with any infix operator, and do
 
 #translation-box([
   The following identities hold:
-  $
-    e_1 italic("op") e_2 &= (italic("op")) med e_1 med e_2 \
-    -e &= mono("negate") (e)
-  $
+  #ottdruleinfix(show-name: false)
+  #ottdrulenegation(show-name: false)
   ]
 )
 
@@ -310,11 +306,9 @@ The expression $(+ (- italic("exp")))$ can serve the same purpose.
 
 #translation-box([
   The following identities hold:
-  $
-    (italic("op") e) &= mono("\\") x mono("->") x italic("op") e\
-    (e italic("op")) &= mono("\\") x mono("->") e italic("op") x
-  $
-  where $italic("op")$ is a binary operator, $e$ is an expression, and $x$ is a variable that does not occur free in $e$.
+  #ottdrulerightXXsection(show-name: false)
+  #ottdruleleftXXsection(show-name: false)
+  Here $italic("op")$ is a binary operator, $e$ is an expression, and $x$ is a variable.
 ])
 
 == Conditionals
@@ -332,9 +326,7 @@ value of $e_1$ is `True`, $e_3$ if $e_1$ is `False`, and $bot$ otherwise.
 
 #translation-box([
   The following identity holds:
-  $
-    mono("if") e_1 mono("then") e_2 mono("else") e_3 = mono("case") e_1 mono("of") { mono("True") mono("->") e_2 mono(";") mono("False") mono("->") e_3}
-  $
+  #ottdruleif(show-name: false)
   where `True` and `False` are the two nullary constructors from the type `Bool`, as defined in the Prelude.
   The type of $e_1$ must be `Bool`;
   $e_2$ and $e_3$ must have the same type, which is also the type of the entire conditional expression.
@@ -372,9 +364,7 @@ Standard operations on lists are given in the Prelude (see @subsec:basic-lists, 
 
 #translation-box([
   The following identity holds:
-  $
-    [e_1, dots, e_k] = e_1 : (e_2 : ( dots ( e_k : [ thin ])))
-  $
+  #ottdrulelist(show-name: false)
   where `:` and `[]` are constructors for lists, as defined in the Prelude (see @subsec:basic-lists).
   The types of $e_1$ through $e_k$ must all be the same (call it $t$), and the
   type of the overall expression is `[t]` (see @sec:type-syntax).
@@ -440,15 +430,10 @@ The _arithmetic sequence_ $[e_1, e_2 .. e_3]$ denotes a list of values of type $
 
 #translation-box([
   Arithmetic sequences satisfy these identities:
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    [`[` $e_1$ `..]`], $=$, [`enumFrom` $e_1$],
-    [`[` $e_1$, $e_2$ `..]`], $=$, [`enumFromThen` $e_1$ $e_2$],
-    [`[` $e_1$ `..` $e_2$ `]`], $=$, [`enumFromTo` $e_1$ $e_2$],
-    [`[` $e_1$, $e_2$ `..` $e_3$ `]`], $=$, [`enumFromThenTo` $e_1$ $e_2$ $e_3$],
-  )
+  #ottdrulefrom(show-name: false)
+  #ottdrulefromXXthen(show-name: false)
+  #ottdrulefromXXto(show-name: false)
+  #ottdrulefromXXthenXXto(show-name: false)
 
   where `enumFrom`, `enumFromThen`, `enumFromTo`, and `enumFromThenTo` are class methods in the class `Enum` as defined in the Prelude (see @subsec:enum-class).
 ])
@@ -498,22 +483,15 @@ $
 $
 #translation-box([
   List comprehensions satisfy these identities, which may be used as a translation into the kernel:
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    $[e | mono("True")]$,$=$, $[e]$,
-    $[e | q]$,$=$,$[e | q, mono("True")]$,
-    $[e | b, Q]$, $=$, $mono("if") b mono("then") [e, Q] mono("else") []$,
-    $[e | p mono("<-") l, Q]$, $=$, $mono("let ok") = [e | Q]$,
-    $$, $$, $mono("      ok") \_ = []$,
-    $$, $$, $mono("in concatMap ok") l$,
-    $[e | mono("let") italic("decls"), Q]$, $=$, $mono("let") italic("decls") mono("in") [e | Q]$
-  )
+  #ottdrulecompXXtrue(show-name: false)
+  #ottdrulecompXXone(show-name: false)
+  #ottdrulecompXXguard(show-name: false)
+  #ottdrulecompXXgen(show-name: false)
+  #ottdrulecompXXlet(show-name: false)
 
   where $e$ ranges over expressions, $p$ over
   patterns, $l$ over list-valued expressions, $b$ over
-  boolean expressions, $italic("decls")$ over declaration lists, $q$ over qualifiers, and $Q$ over sequences of qualifiers.  `ok` is a fresh variable.
+  boolean expressions, $italic("decls")$ over declaration lists, $q$ over qualifiers, and $Q$ over sequences of qualifiers.
   The function `concatMap`, and boolean value `True`, are defined in the Prelude.
 ])
 
@@ -552,15 +530,9 @@ does not cause an execution-time error until `x` or `y` is evaluated.
   respectively, using the translation in
   @subsec:function-and-pattern-bindings.  Once done, these identities
   hold, which may be used as a translation into the kernel:
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    $mono("let") { p_1 = e_1 ; dots ; p_n = e_n} mono("in") e_0$, $=$, $mono("let")(~p_1, dots,~p_n) = (e_1, dots, e_n) mono("in") e_0$,
-    $mono("let") p = e_1 mono("in") e_0$, $=$, $mono("case") e_1 mono("of") ~p mono("->") e_0$,
-    $$, $$, [where no variable in $p$ appears free in $e_1$],
-    $mono("let") p = e_1 mono("in") e_0$, $=$, $mono("let") p = mono("fix") (\\ ~p mono("->") e_1) mono("in") e_0$
-  )
+  #ottdruleletXXtuple(show-name: false)
+  #ottdruleletXXcase(show-name: false)
+  #ottdruleletXXfix(show-name: false)
 
   where `fix` is the least fixpoint operator.  Note the use of the irrefutable patterns `~p`.
   This translation
@@ -698,23 +670,16 @@ to be written in a more traditional way as:
 #translation-box([
   Do expressions satisfy these identities, which may be
   used as a translation into the kernel, after eliminating empty $italic("stmts")$:
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    $mono("do") {e}$, $=$, $e$,
-    $mono("do") {e ; italic("stmts")}$, $=$, $e mono(">>") mono("do") {italic("stmts")}$,
-    $mono("do") {p mono("<-") e; italic("stmts")}$, $=$,$mono("let ok") p = mono("do") { italic("stmts")}$,
-    $$,$$,$mono("      ok") \_ = mono("fail \"...\"")$,
-    $$,$$,$mono("in") e mono(">>=") mono("ok")$,
-    $mono("do") {mono("let") italic("decls"); italic("stmts")}$, $=$,$mono("let") italic("decls") mono("in do") { italic("stmts")}$
-  )
+  #ottdruledoXXlast(show-name: false)
+  #ottdruledoXXexp(show-name: false)
+  #ottdruledoXXbind(show-name: false)
+  #ottdruledoXXlet(show-name: false)
 
   The ellipsis "`...`" stands for a compiler-generated error message,
   passed to `fail`, preferably giving some indication of the location
   of the pattern-match failure;
   the functions `>>`, `>>=`, and `fail` are operations in the class `Monad`,
-  as defined in the Prelude; and `ok` is a fresh identifier.
+  as defined in the Prelude.
 ])
 
 As indicated by the translation of `do`, variables bound by `let` have fully polymorphic types while those defined by `<-` are lambda bound and are thus monomorphic.

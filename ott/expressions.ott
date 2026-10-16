@@ -1,0 +1,206 @@
+% Haskell 2010 (revised): Chapter 3, Expressions.
+%
+% Abstract syntax of expressions and the translation identities that
+% Chapter 3 states in its "Translation" boxes.  The precedence levels of
+% the concrete grammar (exp / infixexp / lexp / fexp / aexp) are
+% collapsed into a single nonterminal: they only matter for parsing,
+% which Chapter 10 specifies separately (layout, fixity resolution).
+
+embed {{ typst-preamble
+// Report style: keywords and symbols as code, and translation
+// identities (rules) shown as equations with their side conditions.
+#let ottkw(x) = math.mono(x)
+#let ottsym(x) = math.mono(x)
+#let ottdrule(premises: (), conclusion: none, name: none, com: none, ..args) = {
+  let side = if premises.len() == 0 { [] } else {
+    [where #premises.join([, ])]
+  }
+  grid(columns: (1fr, auto), column-gutter: 1em, align: (left, right),
+    [#conclusion #h(1em) #side], text(size: 0.8em, name))
+}
+#let ottusedrule(r, categories: ()) = block(spacing: 0.8em, r)
+}}
+
+metavar var, x, f ::=
+  {{ com variable }} {{ lex alphanum0 }} {{ typstvar mono([[var]]) }}
+metavar con, K ::=
+  {{ com constructor }} {{ lex Alphanum }} {{ typstvar mono([[con]]) }}
+metavar op ::=
+  {{ com binary operator }}
+metavar literal, lit ::=
+  {{ com literal }} {{ lex numeral }}
+metavar type, T ::=
+  {{ com type (not formalised here) }}
+
+indexvar index, i, j, k, n ::=
+  {{ com index }} {{ lex numeral }}
+
+grammar
+
+exp, e, b, l :: 'E_' ::=                         {{ com expression }}
+  | x                               ::   :: Var        {{ com variable }}
+  | K                               ::   :: Con        {{ com constructor }}
+  | lit                             ::   :: Lit        {{ com literal }}
+  | ()                              ::   :: Unit       {{ com unit }}
+  | []                              ::   :: Nil        {{ com empty list }}
+  | e '::' T                        ::   :: Sig        {{ com expression type signature }}
+  | e1 op e2                        ::   :: Infix      {{ com infix application }}
+  | - e                             ::   :: Neg        {{ com prefix negation }}
+  | \ p1 ... pn -> e                ::   :: Lam        {{ com lambda abstraction }}
+  | let decls in e                  ::   :: Let        {{ com let expression }}
+  | if e1 then e2 else e3           ::   :: If         {{ com conditional }}
+  | case e of { alt1 ; ... ; altn } ::   :: Case       {{ com case expression }}
+  | do { stmts }                    ::   :: Do         {{ com do expression }}
+  | e1 e2                           ::   :: App        {{ com function application }}
+  | ( e )                           :: S :: Paren      {{ com parenthesized expression }}
+  | ( op )                          ::   :: Op         {{ com operator as a function }}
+  | ( e1 , .... , ek )              ::   :: Tuple      {{ com tuple, $k >= 2$ }}
+  | [ e1 , ... , ek ]               ::   :: List       {{ com list, $k >= 1$ }}
+  | [ e1 '..' ]                   ::   :: From       {{ com arithmetic sequence }}
+  | [ e1 , e2 '..' ]              ::   :: FromThen   {{ com arithmetic sequence }}
+  | [ e1 '..' e3 ]                ::   :: FromTo     {{ com arithmetic sequence }}
+  | [ e1 , e2 '..' e3 ]           ::   :: FromThenTo {{ com arithmetic sequence }}
+  | [ e | Q ]                       ::   :: Comp       {{ com list comprehension }}
+  | ( e op )                        ::   :: LSection   {{ com left section }}
+  | ( op e )                        ::   :: RSection   {{ com right section }}
+  | K { fbind1 , .. , fbindn }      ::   :: RecCon     {{ com labeled construction }}
+  | e { fbind1 , ... , fbindn }     ::   :: RecUpd     {{ com labeled update }}
+  | e1 : ... : ek : []              :: M :: Conses     {{ com nested applications of (:) }}
+
+quals, Q :: 'Q_' ::=                             {{ com qualifiers }}
+  | q                               ::   :: One
+  | q , Q                           ::   :: Cons
+
+qual, q :: 'Qual_' ::=                           {{ com qualifier }}
+  | p <- e                          ::   :: Gen        {{ com generator }}
+  | let decls                       ::   :: Let        {{ com local declaration }}
+  | e                               ::   :: Guard      {{ com boolean guard }}
+
+alt :: 'Alt_' ::=                                {{ com case alternative }}
+  | p -> e                          ::   :: Alt
+
+stmts :: 'Stmts_' ::=                            {{ com statements }}
+  | e                               ::   :: Last
+  | stmt ; stmts                    ::   :: Cons
+
+stmt :: 'Stmt_' ::=                              {{ com statement }}
+  | e                               ::   :: Exp
+  | p <- e                          ::   :: Bind
+  | let decls                       ::   :: Let
+
+decls :: 'Decls_' ::=                            {{ com declarations }}
+  | { d1 ; .. ; dn }                ::   :: Decls
+
+decl, d :: 'Decl_' ::=                           {{ com declaration (only bindings) }}
+  | f p1 ... pn = e                 ::   :: Fun        {{ com function binding }}
+  | p = e                           ::   :: Pat        {{ com pattern binding }}
+
+fbind :: 'FBind_' ::=                            {{ com field binding }}
+  | x = e                           ::   :: FBind
+
+pat, p :: 'P_' ::=                               {{ com pattern }}
+  | x                               ::   :: Var        {{ com variable }}
+  | _                               ::   :: Wild       {{ com wildcard }}
+  | lit                             ::   :: Lit        {{ com literal }}
+  | K p1 .. pn                      ::   :: Con        {{ com constructor pattern }}
+  | x @ p                           ::   :: As         {{ com as pattern }}
+  | ~ p                             ::   :: Lazy       {{ com irrefutable pattern }}
+  | ( p )                           :: S :: Paren
+  | ( p1 , .... , pn )              ::   :: Tuple      {{ com tuple pattern }}
+  | [ p1 , .. , pn ]                ::   :: List       {{ com list pattern }}
+
+% Precedence, as in the concrete grammar: application binds tighter
+% than infix operators and negation; lambda, let, if and case extend as
+% far to the right as possible (the "meta-rule" of Chapter 3).
+parsing
+  E_App left E_App
+  E_Infix <= E_App
+  E_Neg <= E_App
+  E_Sig <= E_App
+  E_Sig <= E_Infix
+  E_Lam <= E_App
+  E_Lam <= E_Infix
+  E_Let <= E_App
+  E_Let <= E_Infix
+  E_If <= E_App
+  E_If <= E_Infix
+  E_Case <= E_App
+  E_Case <= E_Infix
+
+grammar
+
+terminals :: 'terminals_' ::=
+  | '..'                          ::   :: dotdot   {{ tex .. }} {{ typst ottsym("..") }}
+  | ==                              ::   :: equiv      {{ tex \equiv }} {{ typst = }}
+  | notin                           ::   :: notin      {{ tex \notin }} {{ typst in.not }}
+
+formula :: 'formula_' ::=
+  | judgement                       ::   :: judgement
+  | x notin fv ( e )                :: M :: notin
+    {{ tex [[x]] \notin \mathit{fv}([[e]]) }}
+    {{ typst [[x]] in.not italic("fv")([[e]]) }}
+
+defns
+Jtrans :: '' ::=
+
+defn
+e1 == e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
+
+% Section 3.4, Operator Applications
+
+  ------------------------ :: infix
+  e1 op e2 == ( op ) e1 e2
+
+  ------------------------ :: negation
+  - e == negate ( e )
+
+% Section 3.5, Sections
+
+  x notin fv ( e )
+  ------------------------ :: right_section
+  ( op e ) == \ x -> x op e
+
+  x notin fv ( e )
+  ------------------------ :: left_section
+  ( e op ) == \ x -> e op x
+
+% Section 3.6, Conditionals
+
+  ------------------------------------------------------------- :: if
+  if e1 then e2 else e3 == case e1 of { True -> e2 ; False -> e3 }
+
+% Section 3.7, Lists
+
+  -------------------------------- :: list
+  [ e1 , ... , ek ] == e1 : ... : ek : []
+
+% Section 3.10, Arithmetic Sequences
+
+  --------------------------------- :: from
+  [ e1 .. ] == enumFrom e1
+
+  --------------------------------- :: from_then
+  [ e1 , e2 .. ] == enumFromThen e1 e2
+
+  --------------------------------- :: from_to
+  [ e1 .. e3 ] == enumFromTo e1 e3
+
+  --------------------------------- :: from_then_to
+  [ e1 , e2 .. e3 ] == enumFromThenTo e1 e2 e3
+
+% Section 3.11, List Comprehensions
+
+  --------------------------------- :: comp_true
+  [ e | True ] == [ e ]
+
+  --------------------------------- :: comp_one
+  [ e | q ] == [ e | q , True ]
+
+  --------------------------------- :: comp_guard
+  [ e | b , Q ] == if b then [ e | Q ] else []
+
+  ------------------------------------------------------------------ :: comp_gen
+  [ e | p <- l , Q ] == let { ok p = [ e | Q ] ; ok _ = [] } in concatMap ok l
+
+  --------------------------------- :: comp_let
+  [ e | let decls , Q ] == let decls in [ e | Q ]

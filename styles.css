@@ -69,3 +69,17 @@ code {
     padding: 5px;
     margin: 5px;
 }
+
+.terminal {
+    font-family: 'Ubuntu Mono', monospace;
+    color: #239dad;
+}
+
+.nonterminal {
+    font-style: italic;
+    color: #85144b;
+}
+
+.varname {
+    font-style: italic;
+}

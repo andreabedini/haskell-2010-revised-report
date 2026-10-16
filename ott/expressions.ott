@@ -11,14 +11,23 @@
 embed {{ typst-preamble
 // Report style: keywords and symbols as code, and translation
 // identities (rules) shown as equations with their side conditions.
+// Pass `show-name: false` to a rule, as in `ottdruleif(show-name: false)`,
+// for a display equation without the rule name, followed by its side
+// conditions (this also works in HTML export, which ignores grid and
+// align).
 #let ottkw(x) = math.mono(x)
 #let ottsym(x) = math.mono(x)
 #let ottdrule(premises: (), conclusion: none, name: none, com: none, ..args) = {
   let side = if premises.len() == 0 { [] } else {
     [where #premises.join([, ])]
   }
-  grid(columns: (1fr, auto), column-gutter: 1em, align: (left, right),
-    [#conclusion #h(1em) #side], text(size: 0.8em, name))
+  if args.named().at("show-name", default: true) {
+    grid(columns: (1fr, auto), column-gutter: 1em, align: (left, right),
+      [#conclusion #h(1em) #side], text(size: 0.8em, name))
+  } else {
+    math.equation(block: true, numbering: none, conclusion.body)
+    side
+  }
 }
 #let ottusedrule(r, categories: ()) = block(spacing: 0.8em, r)
 }}

@@ -53,10 +53,12 @@ metavar float, r ::=
   {{ com floating point literal }}
 metavar char, c ::=
   {{ com character literal }}
-metavar string, s ::=
+metavar string, str ::=
   {{ com string literal }}
 metavar tyvar, u ::=
   {{ com type variable }} {{ lex alphanum0 }}
+metavar tycls, C ::=
+  {{ com type class }} {{ lex Alphanum }} {{ typstvar mono([[tycls]]) }}
 metavar tycon, T ::=
   {{ com type constructor }} {{ lex Alphanum }} {{ typstvar mono([[tycon]]) }}
 
@@ -117,12 +119,14 @@ op :: 'Op_' ::=                                  {{ com binary operator }}
   | >>=                             ::   :: Bind       {{ com from class Monad }}
   | ==                              ::   :: Eq         {{ com from class Eq }}
   | Ratio.%                         ::   :: Ratio      {{ com from module Data.Ratio }}
+  | $                               ::   :: Apply      {{ com application, from the Prelude }}
+  | $!                              ::   :: StrictApply {{ com strict application, from the Prelude }}
 
 literal, lit :: 'Lit_' ::=                       {{ com literal }}
   | i                               ::   :: Integer    {{ com integer }}
   | r                               ::   :: Float      {{ com floating point }}
   | c                               ::   :: Char       {{ com character }}
-  | s                               ::   :: String     {{ com string }}
+  | str                             ::   :: String     {{ com string }}
 
 quals, Q :: 'Q_' ::=                             {{ com qualifiers }}
   | q                               ::   :: One
@@ -198,6 +202,28 @@ type, t :: 'T_' ::=                              {{ com type (Section 4.1.2) }}
   | ( t )                           :: S :: Paren      {{ com parenthesized type }}
   | t @@ t1 ... tn                  :: M :: Apps       {{ com nested applications $t t_1 dots t_n$ }}
 
+context, cx :: 'Cx_' ::=                         {{ com context (Section 4.1.3) }}
+  | class                           ::   :: One
+  | ( class1 , .. , classn )        ::   :: Many       {{ com $n >= 0$ }}
+
+class :: 'Class_' ::=                            {{ com class assertion }}
+  | C u                             ::   :: Var
+  | C ( u t1 ... tk )               ::   :: App
+
+topdecl, td :: 'TD_' ::=                         {{ com top-level declaration (only data) }}
+  | data cx => T u1 .. uk = constrs ::   :: Data       {{ com datatype declaration }}
+
+constrs :: 'Constrs_' ::=                        {{ com constructors }}
+  | constr                          ::   :: One
+  | constrs1 '|' constrs2           ::   :: Alt
+
+constr :: 'Constr_' ::=                          {{ com constructor (Section 4.2.1) }}
+  | K s1 .. sn                      ::   :: Con
+
+sty, s :: 'S_' ::=                               {{ com constructor argument type }}
+  | t                               ::   :: Lazy
+  | ! t                             ::   :: Strict     {{ com strict }}
+
 fbinds, bs :: 'FBinds_' ::=                      {{ com field bindings }}
   | fbind1 , .. , fbindn            ::   :: FBinds
 
@@ -242,6 +268,7 @@ parsing
   T_App left T_App
   T_Fun right T_Fun
   T_Fun <= T_App
+  Constrs_Alt left Constrs_Alt
 
 grammar
 
@@ -258,6 +285,8 @@ terminals :: 'terminals_' ::=
   | fieldpats                       ::   :: fieldpats  {{ tex \mathit{fieldpats} }} {{ typst italic("fieldpats") }}
   | @@                              ::   :: apps       {{ tex \, }} {{ typst thin }}
   | wildcards                       ::   :: wildcards  {{ tex \mathit{wildcards} }} {{ typst italic("wildcards") }}
+  | apply                           ::   :: apply      {{ tex \mathit{apply} }} {{ typst italic("apply") }}
+  | :=                              ::   :: defeq      {{ tex = }} {{ typst = }}
   | arrows                          ::   :: arrows     {{ tex \mathit{arrows} }} {{ typst italic("arrows") }}
   | pick                            ::   :: pick       {{ tex \mathit{pick} }} {{ typst italic("pick") }}
   % picks is pick with a default for each component: the same function.
@@ -291,6 +320,12 @@ formula :: 'formula_' ::=
     {{ com one $\_$ for each component of $K$ }}
   | i1 / i2 = r                     ::   :: ratio
     {{ com the value of $[[r]]$ is $[[i1]] / [[i2]]$ }}
+  | td                              ::   :: decl
+    {{ com the declaration $[[td]]$ is in scope }}
+  | op = apply ( s )                ::   :: apply
+    {{ com $[[op]]$ is strict application if $[[s]]$ is a strict type, and application otherwise }}
+  | e := e'                         ::   :: def
+    {{ com $[[e]]$ stands for $[[e']]$ }}
   | match = arrows ( rhs )          ::   :: arrows
     {{ com $[[match]]$ is $[[rhs]]$ with each $=$ written $->$ }}
   | e = select ( K , f , y )        ::   :: select
@@ -446,6 +481,19 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
   v fresh
   ------------------------------------------------------------------ :: sig
   e :: t === let { v :: t ; v = e } in v
+
+% Section 4.2.1, Strictness Flags.  A declaration of the form
+% data cx => T u1 .. uk = ... | K s1 ... sn | ... replaces every
+% occurrence of K in an expression; e_n is the left-nested application
+% (((K op1 x1) op2 x2) ...) opn xn.
+
+  data cx => T u1 .. uk = constrs1 | K s1 ... sn | constrs2
+  x1 , ... , xn fresh
+  op1 = apply ( s1 ) ... opn = apply ( sn )
+  e_0 := K
+  e_1 := ( e_0 op1 x1 ) ... e_n := ( e_n-1 opn xn )
+  ------------------------------------------------------------------ :: strict_con
+  K === \ x1 ... xn -> e_n
 
 % Section 3.17.3, Formal Semantics of Pattern Matching (Figures 3.1-3.3).
 %

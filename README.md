@@ -26,11 +26,13 @@ report's own format, Typst.
 
 The file also covers the syntax of types (§4.1.2), with the identities for
 function, tuple, list and parenthesised types as axioms of a judgement
-`t1 === t2`.
+`t1 === t2`, and the translation of strictness flags in `data` declarations
+(§4.2.1), with contexts (§4.1.3) and constructors.
 
 ## Building
 
-You need an Ott with the Typst backend, quoted terminals (`'in'`, which would
+You need an Ott with the Typst backend, shifted indices in dot forms
+(`e_n-1`, used by §4.2.1), quoted terminals (`'in'`, which would
 otherwise be the integer literal `i` with suffix `n`) and nested dot forms (used by field
 selection and update, §3.15, for `p_1_1 .. p_1_k1 ; .. ; p_n_1 .. p_n_kn`),
 currently on the `typst` work in
@@ -80,6 +82,10 @@ This writes the following files to `build/`:
   `= e where decls ≡ | True = e where decls`, are stated for right-hand sides
   with a `where`, as in the report; one without is the same as one with
   `where { }`.
+- The strictness flag translation (§4.2.1) states the left-nested application
+  `(((K op1 x1) op2 x2) ...) opn xn` as a recurrence, `e_0 := K` and
+  `e_i := (e_i-1 opi xi)`, since Ott dot forms cannot nest parentheses; the
+  premise `op = apply (s)` chooses `$` or `$!`.
 - Side conditions are formulas rather than prose: `fresh` for "a new variable",
   `{x1, ..., xn} = vars(p)`, `fieldpats(K, f, p)` for the patterns of rule (n),
   and `wildcards(K)` for those of rule (o). The arities in rules (p)–(r) are the
@@ -97,5 +103,6 @@ This writes the following files to `build/`:
 - The full declaration syntax. `decl` has only function and pattern bindings
   (§4.4.3) and type signatures; infix function bindings such as
   ``x `plus` y = e`` are not covered.
-- Contexts and class assertions (§4.1.3), and kinds.
+- The rest of the declaration syntax (classes, instances, `newtype`, `type`,
+  record fields in `data`), and kinds.
 - Layout and fixity resolution (Chapter 10). The grammar here is abstract.

@@ -210,7 +210,9 @@ which becomes the default in GHC 10.0.
   digits, where the 2010 report allowed any Unicode decimal digit. This
   revision of the report adopted the same rule (issue #3, PR #67), so GHC and
   the revised report agree.
-- [#409](#409) briefly changed defaulting, as above.
+- [#409](#409) briefly changed defaulting, as above. The witness
+  [`DefaultingNonStandardClass.hs`](../ghc-extensions/witnesses/DefaultingNonStandardClass.hs)
+  checks that only GHC 9.12 accepts the program.
 
 #229 is the only one to say it departs from the report: "a slight deviation
 from the standard". #409 promised "backward compatibility" with the report's

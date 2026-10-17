@@ -15,6 +15,14 @@
 # under -XHaskell2010; the script checks the rejection and reports what
 # happens with each listed extension.
 #
+# Class A marks a program that the report rejects but that some GHC versions
+# accept under -XHaskell2010.  A third header line lists those versions:
+#
+#   -- Deviates: 9.12
+#
+# The script expects acceptance from a listed major version and rejection
+# from any other, and reports what happens with each listed extension.
+#
 # Usage: ./check-witnesses.sh [witnesses/Foo.hs ...]
 # Set GHC to choose the compiler (default: ghc).
 
@@ -43,12 +51,35 @@ run() {
 }
 
 "$GHC" --version
+major=$("$GHC" --numeric-version | cut -d. -f1,2)
 status=0
 for file in "$@"; do
   exts=$(sed -n 's/^-- Extensions: //p' "$file")
   [ -n "$exts" ] || continue
   class=$(sed -n 's/^-- Class: //p' "$file")
   name=$(basename "$file" .hs)
+
+  if [ "$class" = A ]; then
+    deviates=$(sed -n 's/^-- Deviates: //p' "$file")
+    case " $deviates " in
+      *" $major "*) expect=accepted ;;
+      *) expect=rejected ;;
+    esac
+    if build "$tmp/$name/base" "$file"; then got=accepted; else got=rejected; fi
+    if [ "$got" != "$expect" ]; then
+      echo "FAIL $name: $got under Haskell2010, expected $expect for GHC $major"
+      status=1
+      continue
+    fi
+    for ext in $exts; do
+      if build "$tmp/$name/$ext" "$file" "-X$ext"; then
+        echo "ok   $name (A): $got by GHC's Haskell2010, accepted with $ext"
+      else
+        echo "ok   $name (A): $got by GHC's Haskell2010, rejected with $ext"
+      fi
+    done
+    continue
+  fi
 
   if [ "$class" = D ]; then
     if build "$tmp/$name/base" "$file"; then

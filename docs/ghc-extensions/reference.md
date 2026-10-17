@@ -240,6 +240,16 @@ does not help.
 GHC also rejects `forall` as a type variable. This matches the revised
 report, which reserves `forall`.
 
+GHC can also depart from the report in the other direction, accepting a
+program that the report rejects. The witnesses for this have class **A**. A
+third header line, `-- Deviates:`, names the GHC major versions that accept
+the program. `check-witnesses.sh` expects those versions to accept it and
+every other version to reject it.
+
+| Witness | By the report | GHC |
+|---|---|---|
+| [`DefaultingNonStandardClass.hs`](witnesses/DefaultingNonStandardClass.hs) | `putStrLn (c 3)`, where `C` is a user-defined class, is ambiguous. `C` is not defined in the Prelude or a standard library, so the type cannot be defaulted (§4.3.4), and the program is a static error. | 9.10 and 9.14 reject it. 9.12 accepts it and prints `Integer`: while implementing `NamedDefaults` (proposal #409), it relaxed defaulting for all code ([#25777](https://gitlab.haskell.org/ghc/ghc/-/issues/25777)). `ExtendedDefaultRules` accepts it on every version, by design. |
+
 ## Implications
 
 Turning on the extension in the first column turns the second one on, or

@@ -40,12 +40,18 @@ metavar newcon, N ::=
   {{ com newtype constructor }}
 metavar varsym ::=
   {{ com operator symbol }}
-metavar literal, lit ::=
-  {{ com numeric, character or string literal }} {{ lex numeral }}
+metavar integer, int ::=
+  {{ com integer literal }} {{ lex numeral }}
+metavar float, r ::=
+  {{ com floating point literal }}
+metavar char, c ::=
+  {{ com character literal }}
+metavar string, s ::=
+  {{ com string literal }}
 metavar type, T ::=
   {{ com type (not formalised here) }}
 
-indexvar index, i, j, k, m, n ::=
+indexvar index, j, k, m, n ::=
   {{ com index }} {{ lex numeral }}
 
 grammar
@@ -77,12 +83,15 @@ exp, e, b, l :: 'E_' ::=                         {{ com expression }}
   | [ e | Q ]                       ::   :: Comp       {{ com list comprehension }}
   | ( e op )                        ::   :: LSection   {{ com left section }}
   | ( op e )                        ::   :: RSection   {{ com right section }}
-  | K { fbind1 , .. , fbindn }      ::   :: RecCon     {{ com labeled construction }}
-  | e { fbind1 , ... , fbindn }     ::   :: RecUpd     {{ com labeled update }}
+  | K { bs }                        ::   :: RecCon     {{ com labeled construction }}
+  | e { bs }                        ::   :: RecUpd     {{ com labeled update, at least one binding }}
   | "..."                           ::   :: FailMsg    {{ com compiler-generated error message }}
   | "No match"                      ::   :: NoMatch    {{ com the error message of a failed case }}
                                                        {{ tex \texttt{"No match"} }}
                                                        {{ typst ottsym("\"No match\"") }}
+  | "Update error"                  ::   :: UpdError   {{ com the error message of a failed update }}
+                                                       {{ tex \texttt{"Update error"} }}
+                                                       {{ typst ottsym("\"Update error\"") }}
   | bot                             ::   :: Bot        {{ com divergence (a semantic value) }}
                                                        {{ tex \bot }} {{ typst bot }}
   % The invisible marker @@ keeps this list form apart from e1 e2:
@@ -95,6 +104,13 @@ op :: 'Op_' ::=                                  {{ com binary operator }}
   | >>                              ::   :: Then       {{ com from class Monad }}
   | >>=                             ::   :: Bind       {{ com from class Monad }}
   | ==                              ::   :: Eq         {{ com from class Eq }}
+  | Ratio.%                         ::   :: Ratio      {{ com from module Data.Ratio }}
+
+literal, lit :: 'Lit_' ::=                       {{ com literal }}
+  | int                             ::   :: Integer    {{ com integer }}
+  | r                               ::   :: Float      {{ com floating point }}
+  | c                               ::   :: Char       {{ com character }}
+  | s                               ::   :: String     {{ com string }}
 
 quals, Q :: 'Q_' ::=                             {{ com qualifiers }}
   | q                               ::   :: One
@@ -137,9 +153,13 @@ stmt :: 'Stmt_' ::=                              {{ com statement }}
 decls :: 'Decls_' ::=                            {{ com declarations }}
   | { d1 ; .. ; dn }                ::   :: Decls
 
-decl, d :: 'Decl_' ::=                           {{ com declaration (only bindings) }}
+decl, d :: 'Decl_' ::=                           {{ com declaration (only bindings and signatures) }}
   | f p1 ... pn = e                 ::   :: Fun        {{ com function binding }}
   | p = e                           ::   :: Pat        {{ com pattern binding }}
+  | x '::' T                        ::   :: Sig        {{ com type signature }}
+
+fbinds, bs :: 'FBinds_' ::=                      {{ com field bindings }}
+  | fbind1 , .. , fbindn            ::   :: FBinds
 
 fbind :: 'FBind_' ::=                            {{ com field binding }}
   | x = e                           ::   :: FBind
@@ -178,6 +198,7 @@ parsing
   E_If <= E_Infix
   E_Case <= E_App
   E_Case <= E_Infix
+  E_Con <= E_RecUpd
 
 grammar
 
@@ -193,9 +214,19 @@ terminals :: 'terminals_' ::=
   | fieldpats                       ::   :: fieldpats  {{ tex \mathit{fieldpats} }} {{ typst italic("fieldpats") }}
   | @@                              ::   :: apps       {{ tex \, }} {{ typst thin }}
   | wildcards                       ::   :: wildcards  {{ tex \mathit{wildcards} }} {{ typst italic("wildcards") }}
+  | pick                            ::   :: pick       {{ tex \mathit{pick} }} {{ typst italic("pick") }}
+  % picks is pick with a default for each component: the same function.
+  | picks                           ::   :: picks      {{ tex \mathit{pick} }} {{ typst italic("pick") }}
+  | cons                            ::   :: cons       {{ tex \mathit{cons} }} {{ typst italic("cons") }}
+  | datacons                        ::   :: datacons   {{ tex \mathit{datacons} }} {{ typst italic("datacons") }}
+  | labels                          ::   :: labels     {{ tex \mathit{labels} }} {{ typst italic("labels") }}
+  | update                          ::   :: update     {{ tex \mathit{update} }} {{ typst italic("update") }}
+  | select                          ::   :: select     {{ tex \mathit{select} }} {{ typst italic("select") }}
+  | isin                            ::   :: isin       {{ tex \in }} {{ typst in }}
 
 formula :: 'formula_' ::=
   | judgement                       ::   :: judgement
+  | formula1 .. formulan            ::   :: dots
   | x notin fv ( e )                :: M :: notin
     {{ com $x$ does not occur free in $e$ }}
     {{ tex [[x]] \notin \mathit{fv}([[e]]) }}
@@ -216,12 +247,35 @@ formula :: 'formula_' ::=
     {{ com $p_i$ is $p$ if $f$ labels the $i$th component of $K$, and $\_$ otherwise }}
   | p1 .. pn = wildcards ( K )      ::   :: wildcards
     {{ com one $\_$ for each component of $K$ }}
+  | int1 / int2 = r                 ::   :: ratio
+    {{ com the value of $[[r]]$ is $[[int1]] / [[int2]]$ }}
+  | f isin labels ( K )             ::   :: label
+    {{ com $f$ labels a component of $K$ }}
+  | f notin labels ( K )            ::   :: nolabel
+    {{ com $f$ labels no component of $K$ }}
+  | { K1 , .. , Kn } = datacons ( f ) ::   :: datacons
+    {{ com the constructors of the datatype with field label $f$ }}
+  | { K1 , .. , Kn } = cons ( bs )  ::   :: cons
+    {{ com the constructors that have all the labels bound in $[[bs]]$ }}
+  | e1 .. ek = pick ( K , bs , e )  ::   :: pick
+    {{ com $e_i$ is $e'$ if $f$ labels the $i$th component of $K$ and $f = e'$ is in $[[bs]]$, and $e$ otherwise }}
+  | e1 .. ek = picks ( K , bs , x1 .. xm ) ::   :: picks
+    {{ com $e_i$ is $e'$ if $f$ labels the $i$th component of $K$ and $f = e'$ is in $[[bs]]$, and $x_i$ otherwise }}
 
 defns
 Jtrans :: '' ::=
 
 defn
 e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
+
+% Section 3.2, Variables, Constructors, Operators, and Literals
+
+  ------------------------ :: integer
+  int === fromInteger int
+
+  int1 / int2 = r
+  ------------------------ :: float
+  r === fromRational ( int1 Ratio.% int2 )
 
 % Section 3.3, Curried Applications and Lambda Abstractions
 
@@ -256,6 +310,11 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 
   -------------------------------- :: list
   [ e1 , ... , ek ] === e1 : ... : ek : []
+
+% Section 3.9, Unit Expressions and Parenthesized Expressions
+
+  ------------------------ :: paren
+  ( e ) === e
 
 % Section 3.10, Arithmetic Sequences
 
@@ -316,6 +375,35 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 
   --------------------------------- :: do_let
   do { let decls ; stmts } === let decls in do { stmts }
+
+% Section 3.15.1, Field Selection.  A field label f is a selector
+% function; the alternative for each constructor is given by the
+% judgement select (K, f, y) = alt below.
+
+  { K1 , ... , Kn } = datacons ( f )
+  select ( K1 , f , y ) = alt1 ... select ( Kn , f , y ) = altn
+  ------------------------------------------------------------------ :: select
+  f x === case x of { alt1 ; ... ; altn }
+
+% Section 3.15.2, Construction Using Field Labels
+
+  e1 ... ek = pick ( K , bs , undefined )
+  ------------------------------------------------------------------ :: rec_con
+  K { bs } === K @@ e1 ... ek
+
+% Section 3.15.3, Updates Using Field Labels.  The alternative for each
+% constructor is given by the judgement update (K, bs) = alt below.
+
+  { K1 , ... , Kn } = cons ( bs )
+  update ( K1 , bs ) = alt1 ... update ( Kn , bs ) = altn
+  ------------------------------------------------------------------ :: rec_upd
+  e { bs } === case e of { alt1 ; ... ; altn ; _ -> error "Update error" }
+
+% Section 3.16, Expression Type-Signatures
+
+  v fresh
+  ------------------------------------------------------------------ :: sig
+  e :: T === let { v :: T ; v = e } in v
 
 % Section 3.17.3, Formal Semantics of Pattern Matching (Figures 3.1-3.3).
 %
@@ -415,3 +503,26 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 
   ------------------------------------------------------------------ :: case_v
   case () of { () | e0 -> e ; _ -> e' } === if e0 then e else e'
+
+% Section 3.15, the case alternatives of field selection and update.
+
+defn
+select ( K , f , y ) = alt :: :: select :: '' {{ com $[[alt]]$ selects field $[[f]]$ of $[[K]]$ as $[[y]]$ }} by
+
+  f isin labels ( K )
+  p1 .. pk = fieldpats ( K , f , y )
+  ------------------------------------------------------------------ :: select_field
+  select ( K , f , y ) = K p1 .. pk -> y
+
+  f notin labels ( K )
+  p1 .. pk = wildcards ( K )
+  ------------------------------------------------------------------ :: select_none
+  select ( K , f , y ) = K p1 .. pk -> undefined
+
+defn
+update ( K , bs ) = alt :: :: update :: '' {{ com $[[alt]]$ updates the fields $[[bs]]$ of $[[K]]$ }} by
+
+  v1 , ... , vk fresh
+  e1 ... ek = picks ( K , bs , v1 ... vk )
+  ------------------------------------------------------------------ :: update
+  update ( K , bs ) = K v1 ... vk -> K @@ e1 ... ek

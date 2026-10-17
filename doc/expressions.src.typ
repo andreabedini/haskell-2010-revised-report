@@ -65,6 +65,34 @@ conventional syntax for monadic programming.
   in the class `Monad`, as defined in the Prelude.
 ]
 
+== Datatypes with Field Labels
+
+#translation-box[
+  A field label $f$ introduces a selector function defined as:
+  #ottdruleselect()
+  where the alternative for each constructor $K$ is
+  #ottdruleselectXXfield()
+  #ottdruleselectXXnone()
+]
+
+#translation-box[
+  In the binding $[[x = e]]$, the field $x$ labels $e$.
+  #ottdrulerecXXcon()
+  where $k$ is the arity of $K$.
+]
+
+#translation-box[
+  #ottdrulerecXXupd()
+  where the alternative for each constructor $K$ is
+  #ottdruleupdate()
+]
+
+== Expression Type-Signatures
+
+#translation-box[
+  #ottdrulesig()
+]
+
 == Formal Semantics of Pattern Matching
 
 #figure(caption: [Semantics of Case Expressions, Part 3], block(width: 100%)[

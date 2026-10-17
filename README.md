@@ -12,8 +12,9 @@ report's own format, Typst.
   precedence of the concrete grammar given as Ott `parsing` priorities. The
   translation identities are axioms of a judgement `e1 === e2`, with side
   conditions such as `x notin fv(e)` or `v fresh` as premises. They cover the
-  "Translation" boxes of §3.3–3.14 (lambda, operators, sections, conditionals,
-  lists, arithmetic sequences, list comprehensions, `let`, `do`) and the formal
+  "Translation" boxes of §3.2–3.16 (literals, lambda, operators, sections,
+  conditionals, lists, parentheses, arithmetic sequences, list comprehensions,
+  `let`, `do`, field labels, type signatures) and the formal
   semantics of `case` in Figures 3.1–3.3 (rules (a)–(v), as `case_a` …
   `case_v`). Every rule has exactly one parse
   (`ott -picky_multiple_parses true`).
@@ -53,6 +54,20 @@ This writes the following files to `build/`:
     `() | p1 <- x1, ..., pn <- xn`, which (s) and (t) turn into the report's
     nested cases, left to right.
   - (s) peels off one guard.
+- Field selection and update (§3.15) have the same problem: each constructor
+  contributes an alternative with its own list of fields. The alternatives are
+  given by two auxiliary judgements, `select (K, f, y) = alt` and
+  `update (K, bs) = alt`, and the translations `select` and `rec_upd` collect
+  one alternative per constructor.
+- The report's `pick` is a formula, `e1 ... ek = pick (K, bs, d)`. The update
+  needs a different default for each component, written `picks` in the source
+  and typeset as `pick`; Ott cannot otherwise tell a single default from a list
+  of one.
+- For field selection, the report says that `C1 ... Cn` are "all the
+  constructors of the datatype containing a field labeled with `f`", and that
+  `ei` is `undefined` when `Ci` has no field `f`. This is read as all the
+  constructors of that datatype (`datacons (f)`); otherwise the `undefined`
+  case could not arise.
 - Side conditions are formulas rather than prose: `fresh` for "a new variable",
   `{x1, ..., xn} = vars(p)`, `fieldpats(K, f, p)` for the patterns of rule (n),
   and `wildcards(K)` for those of rule (o). The arities in rules (p)–(r) are the
@@ -68,7 +83,7 @@ This writes the following files to `build/`:
 ## Not covered yet
 
 - The full declaration syntax and its translation to pattern bindings
-  (§4.4.3). `decl` has only function and pattern bindings.
-- The translations of labelled fields (§3.15) and literals (§3.2).
+  (§4.4.3). `decl` has only function and pattern bindings, and the type
+  signatures that §3.16 needs.
 - Types and contexts, which appear only as the placeholder `T`.
 - Layout and fixity resolution (Chapter 10). The grammar here is abstract.

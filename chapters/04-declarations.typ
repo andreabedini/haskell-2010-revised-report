@@ -1,4 +1,5 @@
 #import "../macros.typ" : *
+#import "../ott/expressions.typ" : *
 In this chapter, we describe the syntax and informal semantics of Haskell _declarations_.
 
 #table(
@@ -1271,16 +1272,9 @@ is not a valid pattern.
 #translation-box[
   The general binding form for functions is semantically
   equivalent to the equation (i.e. simple pattern binding):
-  #table(
-    columns: 2,
-    align: (right, left),
-    stroke: none,
-    $x = mono("\\") x_1 dots x_k mono("-> case") (x_1, dots, x_k) mono("of")$, $(p_(11), dots, p_(1 k)) space italic("match")_1$,
-    $$, $dots$,
-    $$, $(p_(n 1), dots, p_(n k)) space italic("match")_n$,
-  )
-
-  where the $x_i$ are new identifiers.
+  #ottdrulefunXXbinding(show-name: false)
+  The $x_i$ are new identifiers, and in the `case` alternatives each $=$ of
+  a $italic("match")_i$ is written $->$.
 ]
 
 ==== Pattern bindings <sec:pattern-bindings>
@@ -1310,18 +1304,7 @@ words, a pattern binding is:
 
 #translation-box[
   The pattern binding above is semantically equivalent to this simple pattern binding:
-  #table(
-    columns: 2,
-    align: (right, left),
-    stroke: none,
-    $p space =$, $mono("let") italic("decls") mono("in")$,
-    $$, $mono("case") () mono("of")$,
-    $$, $quad () | italic("gs")_1 -> e_1$,
-    $$, $quad quad | italic("gs")_2 -> e_2 $,
-    $$, $quad quad quad dots$,
-    $$, $quad quad | italic("gs")_m -> e_m$,
-    $$, $mono("_") -> mono("error \"Unmatched pattern\"")$
-  )
+  #ottdrulepatXXbinding(show-name: false)
 ]
 
 

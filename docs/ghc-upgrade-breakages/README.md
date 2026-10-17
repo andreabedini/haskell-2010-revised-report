@@ -246,7 +246,10 @@ to from 8.10.7. The change landed in 9.0.1.
   [`StrictnessFlagSpace.hs`](../ghc-extensions/witnesses/StrictnessFlagSpace.hs)
   is listed with the other deviations in
   [GHC extensions](../ghc-extensions/reference.md#where-ghcs-haskell-2010-mode-departs-from-the-report).
-  It is rejected by GHC 9.4.8, 9.10.3, 9.12.2 and 9.14.1.
+  It is rejected by GHC 9.4.8, 9.10.3, 9.12.2 and 9.14.1. The same proposal
+  causes three more deviations, each with its own witness there: an
+  irrefutable pattern written `~ p`, an as-pattern written `x @ p`, and a
+  right section `(!1)`.
 
 ### L7
 

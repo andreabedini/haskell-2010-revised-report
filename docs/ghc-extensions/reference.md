@@ -219,14 +219,20 @@ is the `No` form.
 These witnesses are valid by the report, but GHC 9.12.2 rejects them under
 `-XHaskell2010`. In most cases GHC reserves syntax for an extension even when
 the extension is off, which makes that extension conservative over GHC's
-baseline but not over the report. `StrictnessFlagSpace.hs` is different. GHC
-reads `!`, `~` and `@` according to the white space around them (GHC
-proposal #229, since GHC 9.0), and no extension turns this off.
+baseline but not over the report. Four witnesses are different:
+`StrictnessFlagSpace.hs`, `LazyPatternSpace.hs`, `AsPatternSpace.hs` and
+`BangSection.hs`. GHC reads `!`, `~` and `@` according to the white space
+around them (GHC proposal #229, since GHC 9.0), and no extension turns this
+off. Each lists the extension closest to the syntax involved, to show that it
+does not help.
 
 | Witness | By the report | GHC 9.12.2 |
 |---|---|---|
 | [`BangPatterns.hs`](witnesses/BangPatterns.hs) | `a !b = …` defines the operator `!`. | Reads `!b` as a bang pattern and rejects it, with or without `BangPatterns`. |
 | [`StrictnessFlagSpace.hs`](witnesses/StrictnessFlagSpace.hs) | `data T = MkT ! Int` and `{ f :: ! Int }` declare strict fields. | Reads `!` followed by a space as an infix operator and rejects both, with or without `BangPatterns` or `StrictData`. Writing `!Int` works. |
+| [`LazyPatternSpace.hs`](witnesses/LazyPatternSpace.hs) | `f ~ (a, _) = 1` defines `f` with an irrefutable pattern. | Reads `~` surrounded by spaces as an infix operator, so the equation defines `(~)` and the signature for `f` has no binding. The same with `TypeOperators`. |
+| [`AsPatternSpace.hs`](witnesses/AsPatternSpace.hs) | `g x @ (Just y) = y` defines `g` with an as-pattern. | Reads `@` surrounded by spaces as an infix operator and rejects the equation, with or without `TypeApplications`. |
+| [`BangSection.hs`](witnesses/BangSection.hs) | `(!1)` is a right section of a user-defined `!`. | Reads `!1` as a bang pattern in an expression and rejects it, with or without `BangPatterns`. Writing `(! 1)` works. |
 | [`NumericUnderscores.hs`](witnesses/NumericUnderscores.hs) | `1_000` is `1` applied to the variable `_000`. | Rejects it; with `NumericUnderscores` it is `1000`. |
 | [`QualifiedDo.hs`](witnesses/QualifiedDo.hs) | `M.do` is the constructor `M` composed with a `do` block. | Rejects it; with `QualifiedDo` it is a qualified `do`. |
 | [`LineDirective.hs`](witnesses/LineDirective.hs) | A line starting with `#` is ordinary code. | Reads it as a line directive, with or without `CPP`. |

@@ -1,4 +1,5 @@
 #import "../macros.typ" : *
+#import "../ott/layout.typ" : *
 
 == Notational Conventions
 
@@ -291,26 +292,43 @@ delivers a layout-insensitive translation of $italic("tokens")$, where $italic("
 is the result of lexically analysing a module and adding column-number
 indicators to it as described above.
 The definition of $L$ is as follows, where we use "`:`" as a stream
-construction operator, and "`[]`" for the empty stream.
+construction operator, "`[]`" for the empty stream, and $t$ for a
+lexeme other than a brace.  Each equation states the conditions under
+which it applies, so exactly one applies to a given stream and stack of
+contexts, except at the end of the input in an explicit context, where
+none does.
 
-#table(
-  columns: 4,
-  align: (left, center, left, left),
-  stroke: none,
-  [`L(<n>:ts)(m:ms)`],[`=`],[`; : (L ts (m : ms))`],[if $m = n$],
-  [], [`=`], [`} : (L(<n>:ts) ms)`], [if $n < m$],
-  [`L(<n>:ts) ms`],[`=`],[`L ts ms`],[],
-  [`L({n} : ts)(m:ms)`],[`=`],[`{ : (L ts (n : m : ms)`], [if $n > m$ (Note 1)],
-  [`L({n} : ts)[]`], [`=`],[`{ : (L ts [n])`], [if $n > 0$ (Note 1)],
-  [`L({n} : ts) ms`], [`=`],[`{ : } : (L (<n> : ts) ms)`], [(Note 2)],
-  [`L(} : ts)(0:ms)`], [`=`],[`} : (L ts ms)`],[(Note 3)],
-  [`L(} : ts) ms`], [`=`], [parse-error], [(Note 3)],
-  [`L({ : ts) ms`], [`=`], [`{ : (L ts (0 : ms))`],[(Note 4)],
-  [`L(t : ts)(m:ms)`], [`=`], [`} : (L (t:ts) ms)`],[if `m /= 0` and parse-error($t$) (Note 5)],
-  [`L(t : ts) ms`], [`=`], [`t : (L ts ms)`], [],
-  [`L [] []`], [`=`], [`[]`],[],
-  [`L [] (m : ms)`],[`=`],[`} : (L [] ms)`],[if $m != 0$ (Note 6)]
-)
+// One row for each equation of L, generated from the Ott formalisation:
+// the two sides, and the side conditions with the note that explains it.
+#let row(rule, note: none) = {
+  let (lhs, eq, rhs, cond) = rule(cells: true)
+  (lhs, eq, rhs, [#cond #if note != none [(Note #note)]])
+}
+#block[
+  #set par(justify: false)
+  #table(
+    columns: (auto, auto, auto, 1fr),
+    align: (left, center, left, left),
+    stroke: none,
+    ..row(ottdruleindentXXsemi),
+    ..row(ottdruleindentXXclose),
+    ..row(ottdruleindentXXskip),
+    ..row(ottdruleindentXXskipXXtop),
+    ..row(ottdruleblockXXopen, note: 1),
+    ..row(ottdruleblockXXopenXXtop, note: 1),
+    ..row(ottdruleblockXXempty, note: 2),
+    ..row(ottdruleblockXXemptyXXtop, note: 2),
+    ..row(ottdrulecloseXXexplicit, note: 3),
+    ..row(ottdrulecloseXXerror, note: 3),
+    ..row(ottdrulecloseXXerrorXXtop, note: 3),
+    ..row(ottdruleopenXXexplicit, note: 4),
+    ..row(ottdruleparseXXerror, note: 5),
+    ..row(ottdruletoken),
+    ..row(ottdruletokenXXtop),
+    ..row(ottdruleend),
+    ..row(ottdruleendXXclose, note: 6),
+  )
+]
 
 / Note 1.: A nested context must be further indented 
   than the enclosing context ($n>m$). If not, $L$ fails, and the compiler should indicate a

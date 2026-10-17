@@ -182,12 +182,14 @@ appropriate value of type `Integer`.
 Similarly, a floating point literal stands for an application of `fromRational` to a value of type `Rational` (that is, `Ratio Integer`).
 
 #translation-box([
-  The integer literal $i$ is equivalent to $mono("fromInteger") i$,
-  where `fromInteger` is a method in class `Num` (see @sec:numeric-literals).
-
-  The floating point literal $f$ is equivalent to $mono("fromRational") (n mono("Ratio.%") d)$, where `fromRational` is a method in class `Fractional` and `Ratio.%` constructs a rational from two integers, as defined in
-  the module `Data.Ratio` from the standard library.
-  The integers $n$ and $d$ are chosen so that $n \/ d = f$.
+  The integer literal $i$ and the floating point literal $r$ satisfy
+  these identities:
+  #ottdruleinteger(show-name: false)
+  #ottdrulefloat(show-name: false)
+  where `fromInteger` is a method in class `Num` (see @sec:numeric-literals),
+  `fromRational` is a method in class `Fractional`, and `Ratio.%` constructs a
+  rational from two integers, as defined in the module `Data.Ratio` from the
+  standard library.
 ])
 
 
@@ -414,7 +416,8 @@ The _unit expression_ `()` has type `()` (see @sec:type-syntax).
 It is the only member of that type apart from $bot$, and can be thought of as the "nullary tuple" (see @subsec:basic-trivial).
 
 #translation-box([
-  $(e)$ is equivalent to $e$.
+  The following identity holds:
+  #ottdruleparen(show-name: false)
 ])
 
 == Arithmetic Sequences <sec:arithmetic-sequences>
@@ -724,12 +727,11 @@ cannot be confused with ordinary variables.
 
 #translation-box([
   A field label $f$ introduces a selector function defined as:
-  $
-    f x = mono("case") x mono("of") { C_1 p_(11) dots p_(1k) mono("->") e_1 ; dots ; C_n p_(n 1) dots p_(n k) mono("->") e_n}
-  $
-  where $C_1 dots C_n$ are all the constructors of the datatype containing a
-  field labeled with $f$, $p_(i j)$ is $y$ when $f$ labels the $j$th
-  component of $C_i$ or $\_$ otherwise, and $e_i$ is $y$ when some field in $C_i$ has a label of $f$ or `undefined` otherwise.
+  #ottdruleselect(show-name: false)
+  Here $K_1 dots K_n$ are all the constructors of the datatype containing a
+  field labeled with $f$, $k_i$ is the arity of $K_i$, $p_(i j)$ is $y$ when
+  $f$ labels the $j$th component of $K_i$ or $\_$ otherwise, and $e_i$ is $y$
+  when some field in $K_i$ has a label of $f$ or `undefined` otherwise.
 ])
 
 === Construction Using Field Labels <sec:record-construction>
@@ -762,21 +764,18 @@ it denotes $F bot_1 dots bot_n$, where $n$ is the arity of `F`.
 
 #translation-box([
   In the binding $f = v$, the field $f$ labels $v$.
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    $C { italic("bs") }$, $=$, $C (italic("pick")^C_1 italic("bs") mono("undefined")) dots (italic("pick")^C_k italic("bs") mono("undefined"))$,
-  )
-  where $k$ is the arity of $C$.
+  #ottdrulerecXXcon(show-name: false)
+  Here $k$ is the arity of $K$.
 
-  The auxiliary function $italic("pick")^C_i italic("bs") d$ is defined as follows:
+  The auxiliary function $italic("pick")(K, italic("bs"), d)$ gives one
+  expression for each component of the constructor $K$, as follows:
   #quote(block: true)[
-    If the $i$th component of a constructor $C$ has the
-    field label $f$, and if $f = v$ appears in the binding list $italic("bs")$
-    , then $italic("pick")^C_i italic("bs") d$ is $v$.  Otherwise, $italic("pick")^C_i italic("bs") d$ is
-    the default value $d$.
+    If the $i$th component of $K$ has the field label $f$, and if $f = v$
+    appears in the binding list $italic("bs")$, then the $i$th expression is
+    $v$.  Otherwise, it is the default value $d$.
   ]
+  When $d$ is a list of defaults $d_1 dots d_k$, one for each component,
+  the $i$th default is $d_i$.
 ])
 === Updates Using Field Labels <sec:record-update>
 
@@ -801,18 +800,9 @@ Updates are restricted in the following ways:
 
 #translation-box([
   Using the prior definition of $italic("pick")$,
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    $e {italic("bs")}$, $=$, $mono("case") e mono("of")$,
-    $$, $$,$quad C_1 v_1 dots v_(k_1) mono("->") C_1 (italic("pick")^(C_1)_1 italic("bs") v_1) dots (italic("pick")^(C_1)_(k_1) italic("bs") v_(k_1))$,
-    $$, $$, $quad quad dots$,
-    $$, $$,$quad C_j v_1 dots v_(k_j) mono("->") C_j (italic("pick")^(C_j)_1 italic("bs") v_1) dots (italic("pick")^(C_j)_(k_j) italic("bs") v_(k_j))$,
-    $$, $$,$quad mono("_ -> error \"Update error\"")$
-  )
-  where ${ C_1, dots, C_j}$ is the set of constructors containing all labels in $italic("bs")$, and $k_i$ is the arity of $C_i$.
-
+  #ottdrulerecXXupd(show-name: false)
+  Here ${ K_1, dots, K_j}$ is the set of constructors containing all labels
+  in $italic("bs")$, and $k_i$ is the arity of $K_i$.
 ])
 
 Here are some examples using labeled fields:
@@ -858,12 +848,8 @@ $italic("exp")$.  As with normal type signatures (see
 the principal type derivable from $italic("exp")$, but it is an error to give a type that is more general than, or not comparable to, the principal type.
 
 #translation-box[
-  #table(
-    columns: 3,
-    align: (left, center, left),
-    stroke: none,
-    $e mono("::") t$, $=$, $mono("let") { v mono("::") t; v = e} mono("in") v$
-  )
+  The following identity holds:
+  #ottdrulesig(show-name: false)
 ]
 
 == Pattern Matching <sec:pattern-matching>

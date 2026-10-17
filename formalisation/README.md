@@ -1,9 +1,12 @@
 # Haskell 2010 revised report in Ott
 
 An experiment in formalising parts of the
-[Haskell 2010 revised report](https://github.com/haskellfoundation/haskell-2010-revised-report)
-with [Ott](https://github.com/ott-lang/ott), and typesetting the result in the
-report's own format, Typst.
+Haskell 2010 revised report with [Ott](https://github.com/ott-lang/ott), and
+typesetting the result in the report's own format, Typst.
+
+The report includes the generated rules from `ott/expressions.typ` and
+`ott/layout.typ` at the top of this repository. Run
+`make regenerate-ott OTT=/path/to/ott` there after changing the files here.
 
 ## Contents
 

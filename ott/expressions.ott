@@ -8,37 +8,6 @@
 % parsing, which Chapter 10 specifies separately (layout, fixity
 % resolution).
 
-embed {{ typst-preamble
-// Report style: keywords and symbols as code, and translation
-// identities (rules) shown as equations with their side conditions.
-// Pass `show-name: false` to a rule, as in `ottdruleif(show-name: false)`,
-// for a centred equation without the rule name, followed by its side
-// conditions.  In paged output the equation is inline math, so that a long
-// one wraps at its relations instead of overflowing; HTML export, which
-// ignores grid and align, gets a display equation.
-#let ottkw(x) = math.mono(x)
-// -> is a relation, so that a long rule can wrap after it.
-#let ottsym(x) = if x == "->" { math.class("relation", math.mono(x)) } else { math.mono(x) }
-#let ottdrule(premises: (), conclusion: none, name: none, com: none, ..args) = {
-  let side = if premises.len() == 0 { [] } else {
-    [where #premises.join([, ])]
-  }
-  if args.named().at("show-name", default: true) {
-    grid(columns: (1fr, auto), column-gutter: 1em, align: (left, right),
-      [#conclusion #h(1em) #side], text(size: 0.8em, name))
-  } else {
-    context if target() == "html" {
-      math.equation(block: true, numbering: none, conclusion.body)
-      side
-    } else {
-      block(width: 100%, align(center, par(justify: false, conclusion)))
-      if premises.len() > 0 { par(justify: false, side) }
-    }
-  }
-}
-#let ottusedrule(r, categories: ()) = block(spacing: 0.8em, r)
-}}
-
 metavar var, x, f, v, y ::=
   {{ com variable }} {{ lex alphanum0 }} {{ typstvar mono([[var]]) }}
 metavar con, K ::=

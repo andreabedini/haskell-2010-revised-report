@@ -20,6 +20,17 @@ report's own format, Typst.
   axioms of a judgement `ds1 equiv ds2` on sequences of declarations, typeset
   with `≡` so that it is not confused with the `=` of a binding. Every rule
   has exactly one parse (`ott -picky_multiple_parses true`).
+- `ott/layout.ott`: Chapter 10, §10.3. The layout algorithm `L` as identities
+  `L ts ms === ts'` with side conditions. The report's equations are tried in
+  order; here each one states the conditions under which it applies, so
+  exactly one applies to a stream and a stack of contexts, except at the end
+  of the input in an explicit context (Note 6). Equations that the report
+  writes once are split for the empty and the non-empty context stack.
+  `parse-error(t)` (Note 5) is a premise, not defined further.
+- `ott/style.ott`: the Typst style of the rules, shared by the other files and
+  passed to Ott first. Besides the default rule display, `show-name: false`
+  gives a centred equation and `cells: true` the cells of a table row, as used
+  for the table of `L`.
 - `doc/expressions.src.typ`: excerpts of Chapter 3 that use the generated
   definitions. `[[ ... ]]` quotations are parsed by Ott as Haskell and replaced
   with Typst math.
@@ -49,6 +60,7 @@ This writes the following files to `build/`:
   translation identity, for example `ottdruleif` or `ottgrammar`
 - `expressions.pdf`: the whole formalisation
 - `expressions.doc.pdf`: the Chapter 3 excerpts
+- `layout.typ`, `layout.pdf`: the same for the layout algorithm
 
 ## Differences from the report
 
@@ -97,6 +109,20 @@ This writes the following files to `build/`:
   one too, with an explicit `ok fresh` premise.
 - `e @@ e1 ... en` is an iterated application, typeset as juxtaposition. The
   invisible `@@` keeps it from overlapping with `e1 e2`.
+
+## Observations on the report
+
+Writing the conditions of the layout algorithm explicitly shows two things
+in §10.3:
+
+- Note 1 says that `L` fails when a nested context is not indented further
+  than the enclosing one (`n <= m` for `{n}`). The equation of Note 2,
+  `L ({n} : ts) ms = { : } : L (<n> : ts) ms`, applies in exactly that case,
+  so `L` inserts empty braces instead, and the error only shows up later as a
+  parse error.
+- The paragraph after the notes says "Note 1 implements the feature that
+  layout processing can be stopped prematurely by a parse error". That is
+  Note 5.
 
 ## Not covered yet
 

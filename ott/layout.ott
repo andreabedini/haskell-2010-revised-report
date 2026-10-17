@@ -1,0 +1,137 @@
+% Haskell 2010 (revised): Chapter 10, Section 10.3, Layout.
+%
+% The layout algorithm L, which adds braces and semicolons to a stream
+% of lexemes annotated with indentation tokens {n} and <n>, given a stack
+% of layout contexts.  The report defines L by equations that are tried
+% in order, the later ones applying only when the earlier ones do not;
+% here each equation states the conditions under which it applies, so an
+% equation that the report writes once may be split into several, for
+% the empty context stack and for a non-empty one.
+
+metavar lexeme, t ::=
+  {{ com a lexeme other than a brace }}
+metavar column, n, m ::=
+  {{ com indentation, or 0 for an explicit context }} {{ lex numeral }} {{ typstvar upright([[column]]) }}
+
+grammar
+
+token, tok :: 'Tok_' ::=                         {{ com token }}
+  | t                               ::   :: Lexeme
+  | {                               ::   :: Open       {{ com explicit open brace }}
+  | }                               ::   :: Close      {{ com explicit close brace }}
+  | ;                               ::   :: Semi
+  | { n }                           ::   :: Block      {{ com start of a layout block }}
+  | < n >                           ::   :: Indent     {{ com indentation of the first lexeme of a line }}
+
+tokens, ts :: 'Ts_' ::=                          {{ com stream of tokens }}
+  | []                              ::   :: Nil        {{ com empty stream }}
+  | tok : ts                        ::   :: Cons
+  | parse-error                     ::   :: Error      {{ com failure }}
+  | L ts ms                         :: M :: L          {{ com the layout algorithm }}
+  | ( ts )                          :: S :: Paren
+
+contexts, ms :: 'Ms_' ::=                        {{ com stack of layout contexts }}
+  | []                              ::   :: Nil
+  | m : ms                          ::   :: Cons
+  | [ m ]                           :: M :: One
+  | ( ms )                          :: S :: Paren
+
+terminals :: 'terminals_' ::=
+  | ===                             ::   :: equiv      {{ tex = }} {{ typst = }}
+  | <>                              ::   :: neq        {{ tex \neq }} {{ typst eq.not }}
+  | <=                              ::   :: le         {{ tex \leq }} {{ typst lt.eq }}
+  | parse-error                     ::   :: parseerror {{ tex \mathit{parse\mbox{-}error} }} {{ typst italic("parse-error") }}
+  | L                               ::   :: L          {{ tex L }} {{ typst L }}
+  | or                              ::   :: or         {{ tex \textrm{or} }} {{ typst class("binary", "or") }}
+  | not                             ::   :: not        {{ tex \textrm{not} }} {{ typst "not" }}
+
+formula :: 'formula_' ::=
+  | judgement                       ::   :: judgement
+  | n = m                           ::   :: eq
+  | n < m                           ::   :: lt
+  | n > m                           ::   :: gt
+  | n <= m                          ::   :: le
+  | n <> m                          ::   :: neq
+  | parse-error ( t )               ::   :: parseerror
+    {{ com the tokens generated so far followed by $[[t]]$ are an invalid prefix of the grammar, and followed by a close brace a valid one (Note 5) }}
+  | not formula                     ::   :: not
+  | formula1 or formula2            ::   :: or
+
+defns
+Jlayout :: '' ::=
+
+defn
+ts1 === ts2 :: :: layout :: '' {{ com $[[ts1]]$ is $[[ts2]]$ }} by
+
+% An indentation token: a new item of the current block, the end of the
+% block, or nothing.
+
+  m = n
+  ------------------------------------------------------------------ :: indent_semi
+  L ( < n > : ts ) ( m : ms ) === ; : ( L ts ( m : ms ) )
+
+  n < m
+  ------------------------------------------------------------------ :: indent_close
+  L ( < n > : ts ) ( m : ms ) === } : ( L ( < n > : ts ) ms )
+
+  n > m
+  ------------------------------------------------------------------ :: indent_skip
+  L ( < n > : ts ) ( m : ms ) === L ts ( m : ms )
+
+  ------------------------------------------------------------------ :: indent_skip_top
+  L ( < n > : ts ) [] === L ts []
+
+% The start of a layout block (Notes 1 and 2).
+
+  n > m
+  ------------------------------------------------------------------ :: block_open
+  L ( { n } : ts ) ( m : ms ) === { : ( L ts ( n : m : ms ) )
+
+  n > 0
+  ------------------------------------------------------------------ :: block_open_top
+  L ( { n } : ts ) [] === { : ( L ts [ n ] )
+
+  n <= m
+  ------------------------------------------------------------------ :: block_empty
+  L ( { n } : ts ) ( m : ms ) === { : } : ( L ( < n > : ts ) ( m : ms ) )
+
+  ------------------------------------------------------------------ :: block_empty_top
+  L ( { 0 } : ts ) [] === { : } : ( L ( < 0 > : ts ) [] )
+
+% Explicit braces (Notes 3 and 4).
+
+  ------------------------------------------------------------------ :: close_explicit
+  L ( } : ts ) ( 0 : ms ) === } : ( L ts ms )
+
+  m <> 0
+  ------------------------------------------------------------------ :: close_error
+  L ( } : ts ) ( m : ms ) === parse-error
+
+  ------------------------------------------------------------------ :: close_error_top
+  L ( } : ts ) [] === parse-error
+
+  ------------------------------------------------------------------ :: open_explicit
+  L ( { : ts ) ms === { : ( L ts ( 0 : ms ) )
+
+% Any other lexeme, which may close an implicit block (Note 5).
+
+  m <> 0
+  parse-error ( t )
+  ------------------------------------------------------------------ :: parse_error
+  L ( t : ts ) ( m : ms ) === } : ( L ( t : ts ) ms )
+
+  m = 0 or not parse-error ( t )
+  ------------------------------------------------------------------ :: token
+  L ( t : ts ) ( m : ms ) === t : ( L ts ( m : ms ) )
+
+  ------------------------------------------------------------------ :: token_top
+  L ( t : ts ) [] === t : ( L ts [] )
+
+% The end of the input (Note 6).
+
+  ------------------------------------------------------------------ :: end
+  L [] [] === []
+
+  m <> 0
+  ------------------------------------------------------------------ :: end_close
+  L [] ( m : ms ) === } : ( L [] ms )

@@ -206,7 +206,10 @@ which becomes the default in GHC 10.0.
   `! T` in a field, `~ p`, `x @ p` and `(!1)`.
 - [#76](#76) and [#216](#216) reserve syntax even when their extensions are
   off.
-- [#403](#403) writes down GHC's rejection of non-ASCII digits.
+- [#403](#403) writes down GHC's rule that numeric literals use only ASCII
+  digits, where the 2010 report allowed any Unicode decimal digit. This
+  revision of the report adopted the same rule (issue #3, PR #67), so GHC and
+  the revised report agree.
 - [#409](#409) briefly changed defaulting, as above.
 
 #229 is the only one to say it departs from the report: "a slight deviation
@@ -1322,7 +1325,7 @@ from the standard". #409 promised "backward compatibility" with the report's
 - **Verdict:** No breakage found
 - **Warning period:** n/a
 - **Catalog:** —
-- **Notes:** It writes down a long-standing Haskell 2010 deviation: `decimal → ascDigit{ascDigit}`, where the report has `digit{digit}` with Unicode digits. `print (٣ :: Int)` is a lexical error on 9.4.8, 9.8.4 and 9.14.1. reference.md has no witness for this yet.
+- **Notes:** It writes down a long-standing GHC departure from the 2010 report: `decimal → ascDigit{ascDigit}`, where the 2010 report had `digit{digit}` with Unicode digits. `print (٣ :: Int)` is a lexical error on 9.4.8, 9.8.4 and 9.14.1. The revised report made the same change to `decimal` and `hexit` (issue #3, PR #67), so this is no longer a deviation. Unicode digits are still allowed in identifiers, and GHC accepts them there.
 
 ### 409
 

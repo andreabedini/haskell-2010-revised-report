@@ -24,7 +24,8 @@ report's own format, Typst.
 
 ## Building
 
-You need an Ott with the Typst backend and nested dot forms (used by field
+You need an Ott with the Typst backend, quoted terminals (`'in'`, which would
+otherwise be the integer literal `i` with suffix `n`) and nested dot forms (used by field
 selection and update, §3.15, for `p_1_1 .. p_1_k1 ; .. ; p_n_1 .. p_n_kn`),
 currently on the `typst` work in
 [andreabedini/ott](https://github.com/andreabedini/ott), and

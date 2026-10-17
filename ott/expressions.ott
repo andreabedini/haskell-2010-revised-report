@@ -40,7 +40,7 @@ metavar newcon, N ::=
   {{ com newtype constructor }}
 metavar varsym ::=
   {{ com operator symbol }}
-metavar integer, int ::=
+metavar integer, i ::=
   {{ com integer literal }} {{ lex numeral }}
 metavar float, r ::=
   {{ com floating point literal }}
@@ -67,7 +67,7 @@ exp, e, b, l :: 'E_' ::=                         {{ com expression }}
   | e1 op e2                        ::   :: Infix      {{ com infix application }}
   | - e                             ::   :: Neg        {{ com prefix negation }}
   | \ p1 ... pn -> e                ::   :: Lam        {{ com lambda abstraction }}
-  | let decls in e                  ::   :: Let        {{ com let expression }}
+  | let decls 'in' e                ::   :: Let        {{ com let expression }}
   | if e1 then e2 else e3           ::   :: If         {{ com conditional }}
   | case e of { alt1 ; ... ; altn } ::   :: Case       {{ com case expression }}
   | do { stmts }                    ::   :: Do         {{ com do expression }}
@@ -107,7 +107,7 @@ op :: 'Op_' ::=                                  {{ com binary operator }}
   | Ratio.%                         ::   :: Ratio      {{ com from module Data.Ratio }}
 
 literal, lit :: 'Lit_' ::=                       {{ com literal }}
-  | int                             ::   :: Integer    {{ com integer }}
+  | i                               ::   :: Integer    {{ com integer }}
   | r                               ::   :: Float      {{ com floating point }}
   | c                               ::   :: Char       {{ com character }}
   | s                               ::   :: String     {{ com string }}
@@ -244,8 +244,8 @@ formula :: 'formula_' ::=
     {{ com $p_i$ is $p$ if $f$ labels the $i$th component of $K$, and $\_$ otherwise }}
   | p1 .. pn = wildcards ( K )      ::   :: wildcards
     {{ com one $\_$ for each component of $K$ }}
-  | int1 / int2 = r                 ::   :: ratio
-    {{ com the value of $[[r]]$ is $[[int1]] / [[int2]]$ }}
+  | i1 / i2 = r                     ::   :: ratio
+    {{ com the value of $[[r]]$ is $[[i1]] / [[i2]]$ }}
   | e = select ( K , f , y )        ::   :: select
     {{ com $[[e]]$ is $[[y]]$ if $[[f]]$ labels a component of $[[K]]$, and undefined otherwise }}
   | { K1 , .. , Kn } = datacons ( f ) ::   :: datacons
@@ -266,11 +266,11 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 % Section 3.2, Variables, Constructors, Operators, and Literals
 
   ------------------------ :: integer
-  int === fromInteger int
+  i === fromInteger i
 
-  int1 / int2 = r
+  i1 / i2 = r
   ------------------------ :: float
-  r === fromRational ( int1 Ratio.% int2 )
+  r === fromRational ( i1 Ratio.% i2 )
 
 % Section 3.3, Curried Applications and Lambda Abstractions
 

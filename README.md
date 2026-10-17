@@ -24,6 +24,10 @@ report's own format, Typst.
   definitions. `[[ ... ]]` quotations are parsed by Ott as Haskell and replaced
   with Typst math.
 
+The file also covers the syntax of types (§4.1.2), with the identities for
+function, tuple, list and parenthesised types as axioms of a judgement
+`t1 === t2`.
+
 ## Building
 
 You need an Ott with the Typst backend, quoted terminals (`'in'`, which would
@@ -93,5 +97,5 @@ This writes the following files to `build/`:
 - The full declaration syntax. `decl` has only function and pattern bindings
   (§4.4.3) and type signatures; infix function bindings such as
   ``x `plus` y = e`` are not covered.
-- Types and contexts, which appear only as the placeholder `T`.
+- Contexts and class assertions (§4.1.3), and kinds.
 - Layout and fixity resolution (Chapter 10). The grammar here is abstract.

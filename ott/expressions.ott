@@ -55,8 +55,10 @@ metavar char, c ::=
   {{ com character literal }}
 metavar string, s ::=
   {{ com string literal }}
-metavar type, T ::=
-  {{ com type (not formalised here) }}
+metavar tyvar, u ::=
+  {{ com type variable }} {{ lex alphanum0 }}
+metavar tycon, T ::=
+  {{ com type constructor }} {{ lex Alphanum }} {{ typstvar mono([[tycon]]) }}
 
 indexvar index, j, k, m, n ::=
   {{ com index }} {{ lex numeral }}
@@ -70,7 +72,7 @@ exp, e, b, l :: 'E_' ::=                         {{ com expression }}
   | lit                             ::   :: Lit        {{ com literal }}
   | ()                              ::   :: Unit       {{ com unit }}
   | []                              ::   :: Nil        {{ com empty list }}
-  | e '::' T                        ::   :: Sig        {{ com expression type signature }}
+  | e '::' t                        ::   :: Sig        {{ com expression type signature }}
   | e1 op e2                        ::   :: Infix      {{ com infix application }}
   | - e                             ::   :: Neg        {{ com prefix negation }}
   | \ p1 ... pn -> e                ::   :: Lam        {{ com lambda abstraction }}
@@ -169,7 +171,7 @@ binds, ds :: 'Binds_' ::=                        {{ com sequence of declarations
 decl, d :: 'Decl_' ::=                           {{ com declaration (only bindings and signatures) }}
   | f p1 ... pn rhs                 ::   :: Fun        {{ com function binding }}
   | p rhs                           ::   :: Pat        {{ com pattern binding }}
-  | x '::' T                        ::   :: Sig        {{ com type signature }}
+  | x '::' t                        ::   :: Sig        {{ com type signature }}
 
 rhs :: 'Rhs_' ::=                                {{ com right-hand side of a binding }}
   | = e                             ::   :: Plain
@@ -179,6 +181,22 @@ rhs :: 'Rhs_' ::=                                {{ com right-hand side of a bin
 
 grhs :: 'GRhs_' ::=                              {{ com guarded right-hand side of a binding }}
   | '|' gs = e                      ::   :: GRhs
+
+type, t :: 'T_' ::=                              {{ com type (Section 4.1.2) }}
+  | u                               ::   :: Var        {{ com type variable }}
+  | T                               ::   :: Con        {{ com type constructor }}
+  | ()                              ::   :: Unit       {{ com unit type }}
+  | []                              ::   :: ListCon    {{ com list constructor }}
+  | (->)                            ::   :: FunCon     {{ com function constructor }}
+  | (,...,)                         ::   :: TupleCon   {{ com tupling constructor }}
+                                                       {{ tex (,\ldots,) }}
+                                                       {{ typst ottsym("(,") dots.h ottsym(",)") }}
+  | t1 t2                           ::   :: App        {{ com type application }}
+  | t1 -> t2                        ::   :: Fun        {{ com function type }}
+  | ( t1 , .... , tk )              ::   :: Tuple      {{ com tuple type, $k >= 2$ }}
+  | [ t ]                           ::   :: List       {{ com list type }}
+  | ( t )                           :: S :: Paren      {{ com parenthesized type }}
+  | t @@ t1 ... tn                  :: M :: Apps       {{ com nested applications $t t_1 dots t_n$ }}
 
 fbinds, bs :: 'FBinds_' ::=                      {{ com field bindings }}
   | fbind1 , .. , fbindn            ::   :: FBinds
@@ -221,6 +239,9 @@ parsing
   E_Case <= E_App
   E_Case <= E_Infix
   E_Con <= E_RecUpd
+  T_App left T_App
+  T_Fun right T_Fun
+  T_Fun <= T_App
 
 grammar
 
@@ -424,7 +445,7 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 
   v fresh
   ------------------------------------------------------------------ :: sig
-  e :: T === let { v :: T ; v = e } in v
+  e :: t === let { v :: t ; v = e } in v
 
 % Section 3.17.3, Formal Semantics of Pattern Matching (Figures 3.1-3.3).
 %
@@ -547,3 +568,20 @@ ds1 equiv ds2 :: :: binds :: '' {{ com $[[ds1]]$ translates to $[[ds2]]$ }} by
 
   ------------------------------------------------------------------ :: pat_binding
   p | gs1 = e1 ... | gsm = em where decls equiv p = let decls in case () of { () | gs1 -> e1 ... | gsm -> em ; _ -> error "Unmatched pattern" }
+
+defn
+t1 === t2 :: :: types :: '' {{ com the type $[[t1]]$ is the type $[[t2]]$ }} by
+
+% Section 4.1.2, Syntax of Types
+
+  ------------------------------------------------------------------ :: fun_type
+  t1 -> t2 === (->) t1 t2
+
+  ------------------------------------------------------------------ :: tuple_type
+  ( t1 , ... , tk ) === (,...,) @@ t1 ... tk
+
+  ------------------------------------------------------------------ :: list_type
+  [ t ] === [] t
+
+  ------------------------------------------------------------------ :: paren_type
+  ( t ) === t

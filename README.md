@@ -24,7 +24,9 @@ report's own format, Typst.
 
 ## Building
 
-You need an Ott with the Typst backend, currently on the `typst` work in
+You need an Ott with the Typst backend and nested dot forms (used by field
+selection and update, §3.15, for `p_1_1 .. p_1_k1 ; .. ; p_n_1 .. p_n_kn`),
+currently on the `typst` work in
 [andreabedini/ott](https://github.com/andreabedini/ott), and
 [Typst](https://typst.app).
 
@@ -54,11 +56,6 @@ This writes the following files to `build/`:
     `() | p1 <- x1, ..., pn <- xn`, which (s) and (t) turn into the report's
     nested cases, left to right.
   - (s) peels off one guard.
-- Field selection and update (§3.15) have the same problem: each constructor
-  contributes an alternative with its own list of fields. The alternatives are
-  given by two auxiliary judgements, `select (K, f, y) = alt` and
-  `update (K, bs) = alt`, and the translations `select` and `rec_upd` collect
-  one alternative per constructor.
 - The report's `pick` is a formula, `e1 ... ek = pick (K, bs, d)`. The update
   needs a different default for each component, written `picks` in the source
   and typeset as `pick`; Ott cannot otherwise tell a single default from a list

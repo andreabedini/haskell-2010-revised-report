@@ -219,10 +219,7 @@ terminals :: 'terminals_' ::=
   | picks                           ::   :: picks      {{ tex \mathit{pick} }} {{ typst italic("pick") }}
   | cons                            ::   :: cons       {{ tex \mathit{cons} }} {{ typst italic("cons") }}
   | datacons                        ::   :: datacons   {{ tex \mathit{datacons} }} {{ typst italic("datacons") }}
-  | labels                          ::   :: labels     {{ tex \mathit{labels} }} {{ typst italic("labels") }}
-  | update                          ::   :: update     {{ tex \mathit{update} }} {{ typst italic("update") }}
   | select                          ::   :: select     {{ tex \mathit{select} }} {{ typst italic("select") }}
-  | isin                            ::   :: isin       {{ tex \in }} {{ typst in }}
 
 formula :: 'formula_' ::=
   | judgement                       ::   :: judgement
@@ -249,10 +246,8 @@ formula :: 'formula_' ::=
     {{ com one $\_$ for each component of $K$ }}
   | int1 / int2 = r                 ::   :: ratio
     {{ com the value of $[[r]]$ is $[[int1]] / [[int2]]$ }}
-  | f isin labels ( K )             ::   :: label
-    {{ com $f$ labels a component of $K$ }}
-  | f notin labels ( K )            ::   :: nolabel
-    {{ com $f$ labels no component of $K$ }}
+  | e = select ( K , f , y )        ::   :: select
+    {{ com $[[e]]$ is $[[y]]$ if $[[f]]$ labels a component of $[[K]]$, and undefined otherwise }}
   | { K1 , .. , Kn } = datacons ( f ) ::   :: datacons
     {{ com the constructors of the datatype with field label $f$ }}
   | { K1 , .. , Kn } = cons ( bs )  ::   :: cons
@@ -377,13 +372,14 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
   do { let decls ; stmts } === let decls in do { stmts }
 
 % Section 3.15.1, Field Selection.  A field label f is a selector
-% function; the alternative for each constructor is given by the
-% judgement select (K, f, y) = alt below.
+% function.  The patterns of the i-th alternative are p_i_1 .. p_i_ki,
+% where ki is the arity of Ki.
 
   { K1 , ... , Kn } = datacons ( f )
-  select ( K1 , f , y ) = alt1 ... select ( Kn , f , y ) = altn
+  p_1_1 ... p_1_k1 = fieldpats ( K1 , f , y ) ... p_n_1 ... p_n_kn = fieldpats ( Kn , f , y )
+  e1 = select ( K1 , f , y ) ... en = select ( Kn , f , y )
   ------------------------------------------------------------------ :: select
-  f x === case x of { alt1 ; ... ; altn }
+  f x === case x of { K1 p_1_1 ... p_1_k1 -> e1 ; ... ; Kn p_n_1 ... p_n_kn -> en }
 
 % Section 3.15.2, Construction Using Field Labels
 
@@ -391,13 +387,12 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
   ------------------------------------------------------------------ :: rec_con
   K { bs } === K @@ e1 ... ek
 
-% Section 3.15.3, Updates Using Field Labels.  The alternative for each
-% constructor is given by the judgement update (K, bs) = alt below.
+% Section 3.15.3, Updates Using Field Labels.  ki is the arity of Ki.
 
-  { K1 , ... , Kn } = cons ( bs )
-  update ( K1 , bs ) = alt1 ... update ( Kn , bs ) = altn
+  { K1 , ... , Kj } = cons ( bs )
+  e_1_1 ... e_1_k1 = picks ( K1 , bs , v_1 ... v_k1 ) ... e_j_1 ... e_j_kj = picks ( Kj , bs , v_1 ... v_kj )
   ------------------------------------------------------------------ :: rec_upd
-  e { bs } === case e of { alt1 ; ... ; altn ; _ -> error "Update error" }
+  e { bs } === case e of { K1 v_1 ... v_k1 -> K1 @@ e_1_1 ... e_1_k1 ; ... ; Kj v_1 ... v_kj -> Kj @@ e_j_1 ... e_j_kj ; _ -> error "Update error" }
 
 % Section 3.16, Expression Type-Signatures
 
@@ -503,26 +498,3 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 
   ------------------------------------------------------------------ :: case_v
   case () of { () | e0 -> e ; _ -> e' } === if e0 then e else e'
-
-% Section 3.15, the case alternatives of field selection and update.
-
-defn
-select ( K , f , y ) = alt :: :: select :: '' {{ com $[[alt]]$ selects field $[[f]]$ of $[[K]]$ as $[[y]]$ }} by
-
-  f isin labels ( K )
-  p1 .. pk = fieldpats ( K , f , y )
-  ------------------------------------------------------------------ :: select_field
-  select ( K , f , y ) = K p1 .. pk -> y
-
-  f notin labels ( K )
-  p1 .. pk = wildcards ( K )
-  ------------------------------------------------------------------ :: select_none
-  select ( K , f , y ) = K p1 .. pk -> undefined
-
-defn
-update ( K , bs ) = alt :: :: update :: '' {{ com $[[alt]]$ updates the fields $[[bs]]$ of $[[K]]$ }} by
-
-  v1 , ... , vk fresh
-  e1 ... ek = picks ( K , bs , v1 ... vk )
-  ------------------------------------------------------------------ :: update
-  update ( K , bs ) = K v1 ... vk -> K @@ e1 ... ek

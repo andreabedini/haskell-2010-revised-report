@@ -70,9 +70,7 @@ conventional syntax for monadic programming.
 #translation-box[
   A field label $f$ introduces a selector function defined as:
   #ottdruleselect()
-  where the alternative for each constructor $K$ is
-  #ottdruleselectXXfield()
-  #ottdruleselectXXnone()
+  where $k_i$ is the arity of $K_i$.
 ]
 
 #translation-box[
@@ -83,8 +81,7 @@ conventional syntax for monadic programming.
 
 #translation-box[
   #ottdrulerecXXupd()
-  where the alternative for each constructor $K$ is
-  #ottdruleupdate()
+  where $k_i$ is the arity of $K_i$.
 ]
 
 == Expression Type-Signatures

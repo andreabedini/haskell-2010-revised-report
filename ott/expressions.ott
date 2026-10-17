@@ -96,6 +96,9 @@ exp, e, b, l :: 'E_' ::=                         {{ com expression }}
   | "No match"                      ::   :: NoMatch    {{ com the error message of a failed case }}
                                                        {{ tex \texttt{"No match"} }}
                                                        {{ typst ottsym("\"No match\"") }}
+  | "Unmatched pattern"             ::   :: Unmatched  {{ com the error message of a failed pattern binding }}
+                                                       {{ tex \texttt{"Unmatched pattern"} }}
+                                                       {{ typst ottsym("\"Unmatched pattern\"") }}
   | "Update error"                  ::   :: UpdError   {{ com the error message of a failed update }}
                                                        {{ tex \texttt{"Update error"} }}
                                                        {{ typst ottsym("\"Update error\"") }}
@@ -158,12 +161,24 @@ stmt :: 'Stmt_' ::=                              {{ com statement }}
   | let decls                       ::   :: Let
 
 decls :: 'Decls_' ::=                            {{ com declarations }}
-  | { d1 ; .. ; dn }                ::   :: Decls
+  | { ds }                          ::   :: Decls
+
+binds, ds :: 'Binds_' ::=                        {{ com sequence of declarations }}
+  | d1 ; .. ; dn                    ::   :: Binds
 
 decl, d :: 'Decl_' ::=                           {{ com declaration (only bindings and signatures) }}
-  | f p1 ... pn = e                 ::   :: Fun        {{ com function binding }}
-  | p = e                           ::   :: Pat        {{ com pattern binding }}
+  | f p1 ... pn rhs                 ::   :: Fun        {{ com function binding }}
+  | p rhs                           ::   :: Pat        {{ com pattern binding }}
   | x '::' T                        ::   :: Sig        {{ com type signature }}
+
+rhs :: 'Rhs_' ::=                                {{ com right-hand side of a binding }}
+  | = e                             ::   :: Plain
+  | = e where decls                 ::   :: PlainWhere
+  | grhs1 ... grhsn                 ::   :: Guarded
+  | grhs1 ... grhsn where decls     ::   :: GuardedWhere
+
+grhs :: 'GRhs_' ::=                              {{ com guarded right-hand side of a binding }}
+  | '|' gs = e                      ::   :: GRhs
 
 fbinds, bs :: 'FBinds_' ::=                      {{ com field bindings }}
   | fbind1 , .. , fbindn            ::   :: FBinds
@@ -212,6 +227,7 @@ grammar
 terminals :: 'terminals_' ::=
   | '..'                            ::   :: dotdot     {{ tex .. }} {{ typst ottsym("..") }}
   | ===                             ::   :: equiv      {{ tex = }} {{ typst = }}
+  | equiv                           ::   :: bequiv     {{ tex \equiv }} {{ typst equiv }}
   | notin                           ::   :: notin      {{ tex \notin }} {{ typst in.not }}
   | <>                              ::   :: neq        {{ tex \neq }} {{ typst eq.not }}
   | fresh                           ::   :: fresh      {{ tex \textrm{fresh} }} {{ typst "fresh" }}
@@ -221,6 +237,7 @@ terminals :: 'terminals_' ::=
   | fieldpats                       ::   :: fieldpats  {{ tex \mathit{fieldpats} }} {{ typst italic("fieldpats") }}
   | @@                              ::   :: apps       {{ tex \, }} {{ typst thin }}
   | wildcards                       ::   :: wildcards  {{ tex \mathit{wildcards} }} {{ typst italic("wildcards") }}
+  | arrows                          ::   :: arrows     {{ tex \mathit{arrows} }} {{ typst italic("arrows") }}
   | pick                            ::   :: pick       {{ tex \mathit{pick} }} {{ typst italic("pick") }}
   % picks is pick with a default for each component: the same function.
   | picks                           ::   :: picks      {{ tex \mathit{pick} }} {{ typst italic("pick") }}
@@ -253,6 +270,8 @@ formula :: 'formula_' ::=
     {{ com one $\_$ for each component of $K$ }}
   | i1 / i2 = r                     ::   :: ratio
     {{ com the value of $[[r]]$ is $[[i1]] / [[i2]]$ }}
+  | match = arrows ( rhs )          ::   :: arrows
+    {{ com $[[match]]$ is $[[rhs]]$ with each $=$ written $->$ }}
   | e = select ( K , f , y )        ::   :: select
     {{ com $[[e]]$ is $[[y]]$ if $[[f]]$ labels a component of $[[K]]$, and undefined otherwise }}
   | { K1 , .. , Kn } = datacons ( f ) ::   :: datacons
@@ -505,3 +524,26 @@ e1 === e2 :: :: equiv :: '' {{ com $[[e1]]$ translates to $[[e2]]$ }} by
 
   ------------------------------------------------------------------ :: case_v
   case () of { () | e0 -> e ; _ -> e' } === if e0 then e else e'
+
+defn
+rhs1 equiv rhs2 :: :: rhs :: '' {{ com $[[rhs1]]$ is shorthand for $[[rhs2]]$ }} by
+
+% Section 4.4.3.1, Function bindings
+
+  ------------------------------------------------------------------ :: rhs_true
+  = e where decls equiv | True = e where decls
+
+defn
+ds1 equiv ds2 :: :: binds :: '' {{ com $[[ds1]]$ translates to $[[ds2]]$ }} by
+
+% Section 4.4.3.1, Function bindings
+
+  x1 , ... , xk fresh
+  match1 = arrows ( rhs1 ) ... matchn = arrows ( rhsn )
+  ------------------------------------------------------------------ :: fun_binding
+  x p_1_1 ... p_1_k rhs1 ; ... ; x p_n_1 ... p_n_k rhsn equiv x = \ x1 ... xk -> case ( x1 , ... , xk ) of { ( p_1_1 , ... , p_1_k ) match1 ; ... ; ( p_n_1 , ... , p_n_k ) matchn }
+
+% Section 4.4.3.2, Pattern bindings
+
+  ------------------------------------------------------------------ :: pat_binding
+  p | gs1 = e1 ... | gsm = em where decls equiv p = let decls in case () of { () | gs1 -> e1 ... | gsm -> em ; _ -> error "Unmatched pattern" }

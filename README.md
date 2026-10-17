@@ -16,8 +16,10 @@ report's own format, Typst.
   conditionals, lists, parentheses, arithmetic sequences, list comprehensions,
   `let`, `do`, field labels, type signatures) and the formal
   semantics of `case` in Figures 3.1–3.3 (rules (a)–(v), as `case_a` …
-  `case_v`). Every rule has exactly one parse
-  (`ott -picky_multiple_parses true`).
+  `case_v`). The translations of function and pattern bindings (§4.4.3) are
+  axioms of a judgement `ds1 equiv ds2` on sequences of declarations, typeset
+  with `≡` so that it is not confused with the `=` of a binding. Every rule
+  has exactly one parse (`ott -picky_multiple_parses true`).
 - `doc/expressions.src.typ`: excerpts of Chapter 3 that use the generated
   definitions. `[[ ... ]]` quotations are parsed by Ott as Haskell and replaced
   with Typst math.
@@ -66,6 +68,14 @@ This writes the following files to `build/`:
   `ei` is `undefined` when `Ci` has no field `f`. This is read as all the
   constructors of that datatype (`datacons (f)`); otherwise the `undefined`
   case could not arise.
+- A binding has a right-hand side `rhs` (`= e`, or guards `| gs = e`), while a
+  case alternative has a `match` (`-> e`, or `| gs -> e`). The report calls
+  both `match`; the translation of function bindings relates them with the
+  premise `match = arrows (rhs)`.
+- The translation of pattern bindings, and the shorthand
+  `= e where decls ≡ | True = e where decls`, are stated for right-hand sides
+  with a `where`, as in the report; one without is the same as one with
+  `where { }`.
 - Side conditions are formulas rather than prose: `fresh` for "a new variable",
   `{x1, ..., xn} = vars(p)`, `fieldpats(K, f, p)` for the patterns of rule (n),
   and `wildcards(K)` for those of rule (o). The arities in rules (p)–(r) are the
@@ -80,8 +90,8 @@ This writes the following files to `build/`:
 
 ## Not covered yet
 
-- The full declaration syntax and its translation to pattern bindings
-  (§4.4.3). `decl` has only function and pattern bindings, and the type
-  signatures that §3.16 needs.
+- The full declaration syntax. `decl` has only function and pattern bindings
+  (§4.4.3) and type signatures; infix function bindings such as
+  ``x `plus` y = e`` are not covered.
 - Types and contexts, which appear only as the placeholder `T`.
 - Layout and fixity resolution (Chapter 10). The grammar here is abstract.

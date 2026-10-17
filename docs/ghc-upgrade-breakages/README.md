@@ -9,7 +9,10 @@ points at the section. The cases are then assessed against GHC's own
 [stability principles](#against-ghcs-stability-principles).
 
 The catalog is input to future revisions of the report, alongside
-[GHC extensions](../ghc-extensions/README.md). It records what broke in
+[GHC extensions](../ghc-extensions/README.md). Many cases trace back to
+accepted GHC proposals; [Accepted GHC proposals and the breakage they
+caused](../ghc-proposal-breakages/README.md) goes through those proposals one
+by one. It records what broke in
 practice, so it is not a complete list of what changed.
 
 ## Sources

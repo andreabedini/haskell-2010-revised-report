@@ -501,17 +501,13 @@ it has special significance only in the context of the argument types of
 a data declaration.
 
 #translation-box[
-  A declaration of the form
-  $
-    mono("data") italic("cx") => T u_1 dots u_k = dots  | K s_1 dots s_n | dots
-  $
-  where each $s_i$ is either of the form $! t_i$ or $t_i$, replaces
-  every occurrence of $K$ in an expression by
-  $
-    (mono("\\") x_1 dots x_n mono("->") (((K italic("op")_1 x_1) italic("op")_2 x_2) dots) italic("op")_n x_n)
-  $
-  where $italic("op")_i$ is the non-strict apply function `$` if $s_i$ is of the form $t_i$,
-  and $italic("op")_i$ is the strict apply function `$!` (see
+  A declaration of a constructor $K s_1 dots s_n$, where each $s_i$ is
+  either of the form $! t_i$ or $t_i$, replaces every occurrence of $K$ in
+  an expression as follows:
+  #ottdrulestrictXXcon(show-name: false)
+  Here $e_n$ is $(((K italic("op")_1 x_1) italic("op")_2 x_2) dots) italic("op")_n x_n$,
+  and $italic("op")_i$ is the non-strict apply function `$` if $s_i$ is of the form $t_i$,
+  and the strict apply function `$!` (see
   @sec:strict-eval) if $s_i$ is of the form $! t_i$.
   Pattern matching on $K$ is not affected by strictness flags.
 ]

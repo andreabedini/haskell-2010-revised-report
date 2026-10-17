@@ -76,8 +76,10 @@ ottmetavarline($ottmv("varsym")$, ottcom[operator symbol]),
 ottmetavarline($ottmv("integer") , ottmv("i")$, ottcom[integer literal]),
 ottmetavarline($ottmv("float") , ottmv("r")$, ottcom[floating point literal]),
 ottmetavarline($ottmv("char") , ottmv("c")$, ottcom[character literal]),
-ottmetavarline($ottmv("string") , ottmv("s")$, ottcom[string literal]),
-ottmetavarline($ottmv("type") , ottmv("T")$, ottcom[type (not formalised here)]),
+ottmetavarline($ottmv("string") , ottmv("str")$, ottcom[string literal]),
+ottmetavarline($ottmv("tyvar") , ottmv("u")$, ottcom[type variable]),
+ottmetavarline($ottmv("tycls") , ottmv("C")$, ottcom[type class]),
+ottmetavarline($ottmv("tycon") , ottmv("T")$, ottcom[type constructor]),
 ottmetavarline($ottmv("index") , ottmv("j") , ottmv("k") , ottmv("m") , ottmv("n")$, ottcom[index]),
 )
 
@@ -89,7 +91,7 @@ ottprodline($|$, $ottmv("N")$, [], [], [], ottcom[newtype constructor]),
 ottprodline($|$, $ottnt("lit")$, [], [], [], ottcom[literal]),
 ottprodline($|$, $ottsym("()")$, [], [], [], ottcom[unit]),
 ottprodline($|$, $ottsym("[]")$, [], [], [], ottcom[empty list]),
-ottprodline($|$, $ottnt("e")  ottsym("::")  ottmv("T")$, [], [], [], ottcom[expression type signature]),
+ottprodline($|$, $ottnt("e")  ottsym("::")  ottnt("t")$, [], [], [], ottcom[expression type signature]),
 ottprodline($|$, $ottnt("e"_(1)) thin ottnt("op") thin ottnt("e"_(2))$, [], [], [], ottcom[infix application]),
 ottprodline($|$, $ottsym("-")  ottnt("e")$, [], [], [], ottcom[prefix negation]),
 ottprodline($|$, $ottsym("\\")  ottnt("p"_(1)) thin  dots.h  thin ottnt("p"_(ottmv("n")))  ottsym("->")  ottnt("e")$, [], [], [], ottcom[lambda abstraction]),
@@ -127,6 +129,8 @@ ottprodline($|$, $ottsym(">>")$, [], [], [], ottcom[from class Monad]),
 ottprodline($|$, $ottsym(">>=")$, [], [], [], ottcom[from class Monad]),
 ottprodline($|$, $ottsym("==")$, [], [], [], ottcom[from class Eq]),
 ottprodline($|$, $ottsym("Ratio.%")$, [], [], [], ottcom[from module Data.Ratio]),
+ottprodline($|$, $ottsym("$")$, [], [], [], ottcom[application, from the Prelude]),
+ottprodline($|$, $ottsym("$!")$, [], [], [], ottcom[strict application, from the Prelude]),
 )
 
 #let ottliteral = (
@@ -134,7 +138,7 @@ ottrulehead($ottnt("literal") , ottnt("lit")$, $::=$, ottcom[literal]),
 ottfirstprodline($|$, $ottmv("i")$, [], [], [], ottcom[integer]),
 ottprodline($|$, $ottmv("r")$, [], [], [], ottcom[floating point]),
 ottprodline($|$, $ottmv("c")$, [], [], [], ottcom[character]),
-ottprodline($|$, $ottmv("s")$, [], [], [], ottcom[string]),
+ottprodline($|$, $ottmv("str")$, [], [], [], ottcom[string]),
 )
 
 #let ottquals = (
@@ -207,7 +211,7 @@ ottfirstprodline($|$, $ottnt("d"_(1))  ottsym(";") thin  dots.h  thin ottsym(";"
 ottrulehead($ottnt("decl") , ottnt("d")$, $::=$, ottcom[declaration (only bindings and signatures)]),
 ottfirstprodline($|$, $ottmv("f") thin ottnt("p"_(1)) thin  dots.h  thin ottnt("p"_(ottmv("n"))) thin ottnt("rhs")$, [], [], [], ottcom[function binding]),
 ottprodline($|$, $ottnt("p") thin ottnt("rhs")$, [], [], [], ottcom[pattern binding]),
-ottprodline($|$, $ottmv("x")  ottsym("::")  ottmv("T")$, [], [], [], ottcom[type signature]),
+ottprodline($|$, $ottmv("x")  ottsym("::")  ottnt("t")$, [], [], [], ottcom[type signature]),
 )
 
 #let ottrhs = (
@@ -221,6 +225,56 @@ ottprodline($|$, $ottnt("grhs"_(1)) thin  dots.h  thin ottnt("grhs"_(ottmv("n"))
 #let ottgrhs = (
 ottrulehead($ottnt("grhs")$, $::=$, ottcom[guarded right-hand side of a binding]),
 ottfirstprodline($|$, $ottsym("|")  ottnt("gs")  ottsym("=")  ottnt("e")$, [], [], [], []),
+)
+
+#let otttype = (
+ottrulehead($ottnt("type") , ottnt("t")$, $::=$, ottcom[type (Section 4.1.2)]),
+ottfirstprodline($|$, $ottmv("u")$, [], [], [], ottcom[type variable]),
+ottprodline($|$, $ottmv("T")$, [], [], [], ottcom[type constructor]),
+ottprodline($|$, $ottsym("()")$, [], [], [], ottcom[unit type]),
+ottprodline($|$, $ottsym("[]")$, [], [], [], ottcom[list constructor]),
+ottprodline($|$, $ottsym("(->)")$, [], [], [], ottcom[function constructor]),
+ottprodline($|$, $ottsym("(,") dots.h ottsym(",)")$, [], [], [], ottcom[tupling constructor]),
+ottprodline($|$, $ottnt("t"_(1)) thin ottnt("t"_(2))$, [], [], [], ottcom[type application]),
+ottprodline($|$, $ottnt("t"_(1))  ottsym("->")  ottnt("t"_(2))$, [], [], [], ottcom[function type]),
+ottprodline($|$, $ottsym("(")  ottnt("t"_(1))  ottsym(",") thin  dots.h  thin ottsym(",")  ottnt("t"_(ottmv("k")))  ottsym(")")$, [], [], [], ottcom[tuple type, $k >= 2$]),
+ottprodline($|$, $ottsym("[")  ottnt("t")  ottsym("]")$, [], [], [], ottcom[list type]),
+ottprodline($|$, $ottsym("(")  ottnt("t")  ottsym(")")$, $sans("S")$, [], [], ottcom[parenthesized type]),
+ottprodline($|$, $ottnt("t")  thin  ottnt("t"_(1)) thin  dots.h  thin ottnt("t"_(ottmv("n")))$, $sans("M")$, [], [], ottcom[nested applications $t t_1 dots t_n$]),
+)
+
+#let ottcontext = (
+ottrulehead($ottnt("context") , ottnt("cx")$, $::=$, ottcom[context (Section 4.1.3)]),
+ottfirstprodline($|$, $ottnt("class")$, [], [], [], []),
+ottprodline($|$, $ottsym("(")  ottnt("class"_(1))  ottsym(",") thin  dots.h  thin ottsym(",")  ottnt("class"_(ottmv("n")))  ottsym(")")$, [], [], [], ottcom[$n >= 0$]),
+)
+
+#let ottclass = (
+ottrulehead($ottnt("class")$, $::=$, ottcom[class assertion]),
+ottfirstprodline($|$, $ottmv("C") thin ottmv("u")$, [], [], [], []),
+ottprodline($|$, $ottmv("C")  ottsym("(")  ottmv("u") thin ottnt("t"_(1)) thin  dots.h  thin ottnt("t"_(ottmv("k")))  ottsym(")")$, [], [], [], []),
+)
+
+#let otttopdecl = (
+ottrulehead($ottnt("topdecl") , ottnt("td")$, $::=$, ottcom[top-level declaration (only data)]),
+ottfirstprodline($|$, $ottkw("data") thin ottnt("cx")  ottsym("=>")  ottmv("T") thin ottmv("u"_(1)) thin  dots.h  thin ottmv("u"_(ottmv("k")))  ottsym("=")  ottnt("constrs")$, [], [], [], ottcom[datatype declaration]),
+)
+
+#let ottconstrs = (
+ottrulehead($ottnt("constrs")$, $::=$, ottcom[constructors]),
+ottfirstprodline($|$, $ottnt("constr")$, [], [], [], []),
+ottprodline($|$, $ottnt("constrs"_(1))  ottsym("|")  ottnt("constrs"_(2))$, [], [], [], []),
+)
+
+#let ottconstr = (
+ottrulehead($ottnt("constr")$, $::=$, ottcom[constructor (Section 4.2.1)]),
+ottfirstprodline($|$, $ottmv("K") thin ottnt("s"_(1)) thin  dots.h  thin ottnt("s"_(ottmv("n")))$, [], [], [], []),
+)
+
+#let ottsty = (
+ottrulehead($ottnt("sty") , ottnt("s")$, $::=$, ottcom[constructor argument type]),
+ottfirstprodline($|$, $ottnt("t")$, [], [], [], []),
+ottprodline($|$, $ottsym("!")  ottnt("t")$, [], [], [], ottcom[strict]),
 )
 
 #let ottfbinds = (
@@ -267,6 +321,8 @@ ottprodline($|$, $italic("vars")$, [], [], [], []),
 ottprodline($|$, $italic("fieldpats")$, [], [], [], []),
 ottprodline($|$, $thin$, [], [], [], []),
 ottprodline($|$, $italic("wildcards")$, [], [], [], []),
+ottprodline($|$, $italic("apply")$, [], [], [], []),
+ottprodline($|$, $=$, [], [], [], []),
 ottprodline($|$, $italic("arrows")$, [], [], [], []),
 ottprodline($|$, $italic("pick")$, [], [], [], []),
 ottprodline($|$, $italic("pick")$, [], [], [], []),
@@ -288,6 +344,9 @@ ottprodline($|$, $ottmv("K")  eq.not  ottmv("K"')$, [], [], [], ottcom[distinct 
 ottprodline($|$, $ottnt("p"_(1)) thin  dots.h  thin ottnt("p"_(ottmv("n")))  ottsym("=") thin italic("fieldpats") thin ottsym("(")  ottmv("K")  ottsym(",")  ottmv("f")  ottsym(",")  ottnt("p")  ottsym(")")$, [], [], [], ottcom[$p_i$ is $p$ if $f$ labels the $i$th component of $K$, and $\_$ otherwise]),
 ottprodline($|$, $ottnt("p"_(1)) thin  dots.h  thin ottnt("p"_(ottmv("n")))  ottsym("=") thin italic("wildcards") thin ottsym("(")  ottmv("K")  ottsym(")")$, [], [], [], ottcom[one $\_$ for each component of $K$]),
 ottprodline($|$, $ottmv("i"_(1))  ottsym("/")  ottmv("i"_(2))  ottsym("=")  ottmv("r")$, [], [], [], ottcom[the value of $#($ottmv("r")$)$ is $#($ottmv("i"_(1))$) / #($ottmv("i"_(2))$)$]),
+ottprodline($|$, $ottnt("td")$, [], [], [], ottcom[the declaration $#($ottnt("td")$)$ is in scope]),
+ottprodline($|$, $ottnt("op")  ottsym("=") thin italic("apply") thin ottsym("(")  ottnt("s")  ottsym(")")$, [], [], [], ottcom[$#($ottnt("op")$)$ is strict application if $#($ottnt("s")$)$ is a strict type, and application otherwise]),
+ottprodline($|$, $ottnt("e")  =  ottnt("e"')$, [], [], [], ottcom[$#($ottnt("e")$)$ stands for $#($ottnt("e"')$)$]),
 ottprodline($|$, $ottnt("match")  ottsym("=") thin italic("arrows") thin ottsym("(")  ottnt("rhs")  ottsym(")")$, [], [], [], ottcom[$#($ottnt("match")$)$ is $#($ottnt("rhs")$)$ with each $=$ written $->$]),
 ottprodline($|$, $ottnt("e")  ottsym("=") thin italic("select") thin ottsym("(")  ottmv("K")  ottsym(",")  ottmv("f")  ottsym(",")  ottmv("y")  ottsym(")")$, [], [], [], ottcom[$#($ottnt("e")$)$ is $#($ottmv("y")$)$ if $#($ottmv("f")$)$ labels a component of $#($ottmv("K")$)$, and undefined otherwise]),
 ottprodline($|$, $ottsym("{")  ottmv("K"_(1))  ottsym(",") thin  dots.h  thin ottsym(",")  ottmv("K"_(ottmv("n")))  ottsym("}")  ottsym("=") thin italic("datacons") thin ottsym("(")  ottmv("f")  ottsym(")")$, [], [], [], ottcom[the constructors of the datatype with field label $f$]),
@@ -301,6 +360,7 @@ ottrulehead($ottnt("Jtrans")$, $::=$, []),
 ottfirstprodline($|$, $ottnt("e"_(1))  =  ottnt("e"_(2))$, [], [], [], ottcom[$#($ottnt("e"_(1))$)$ translates to $#($ottnt("e"_(2))$)$]),
 ottprodline($|$, $ottnt("rhs"_(1)) thin equiv thin ottnt("rhs"_(2))$, [], [], [], ottcom[$#($ottnt("rhs"_(1))$)$ is shorthand for $#($ottnt("rhs"_(2))$)$]),
 ottprodline($|$, $ottnt("ds"_(1)) thin equiv thin ottnt("ds"_(2))$, [], [], [], ottcom[$#($ottnt("ds"_(1))$)$ translates to $#($ottnt("ds"_(2))$)$]),
+ottprodline($|$, $ottnt("t"_(1))  =  ottnt("t"_(2))$, [], [], [], ottcom[the type $#($ottnt("t"_(1))$)$ is the type $#($ottnt("t"_(2))$)$]),
 )
 
 #let ottjudgement = (
@@ -318,7 +378,9 @@ ottprodline($|$, $ottmv("integer")$, [], [], [], []),
 ottprodline($|$, $ottmv("float")$, [], [], [], []),
 ottprodline($|$, $ottmv("char")$, [], [], [], []),
 ottprodline($|$, $ottmv("string")$, [], [], [], []),
-ottprodline($|$, $ottmv("type")$, [], [], [], []),
+ottprodline($|$, $ottmv("tyvar")$, [], [], [], []),
+ottprodline($|$, $ottmv("tycls")$, [], [], [], []),
+ottprodline($|$, $ottmv("tycon")$, [], [], [], []),
 ottprodline($|$, $ottmv("index")$, [], [], [], []),
 ottprodline($|$, $ottnt("exp")$, [], [], [], []),
 ottprodline($|$, $ottnt("op")$, [], [], [], []),
@@ -337,6 +399,13 @@ ottprodline($|$, $ottnt("binds")$, [], [], [], []),
 ottprodline($|$, $ottnt("decl")$, [], [], [], []),
 ottprodline($|$, $ottnt("rhs")$, [], [], [], []),
 ottprodline($|$, $ottnt("grhs")$, [], [], [], []),
+ottprodline($|$, $ottnt("type")$, [], [], [], []),
+ottprodline($|$, $ottnt("context")$, [], [], [], []),
+ottprodline($|$, $ottnt("class")$, [], [], [], []),
+ottprodline($|$, $ottnt("topdecl")$, [], [], [], []),
+ottprodline($|$, $ottnt("constrs")$, [], [], [], []),
+ottprodline($|$, $ottnt("constr")$, [], [], [], []),
+ottprodline($|$, $ottnt("sty")$, [], [], [], []),
 ottprodline($|$, $ottnt("fbinds")$, [], [], [], []),
 ottprodline($|$, $ottnt("fbind")$, [], [], [], []),
 ottprodline($|$, $ottnt("pat")$, [], [], [], []),
@@ -363,6 +432,13 @@ ottbinds, ottinterrule,
 ottdecl, ottinterrule,
 ottrhs, ottinterrule,
 ottgrhs, ottinterrule,
+otttype, ottinterrule,
+ottcontext, ottinterrule,
+ottclass, ottinterrule,
+otttopdecl, ottinterrule,
+ottconstrs, ottinterrule,
+ottconstr, ottinterrule,
+ottsty, ottinterrule,
 ottfbinds, ottinterrule,
 ottfbind, ottinterrule,
 ottpat, ottinterrule,
@@ -597,8 +673,20 @@ ottuserXXsyntax, ottafterlastrule
   premises: (
     ottpremise($ottmv("v") thin "fresh"$),
   ),
-  conclusion: $ottnt("e")  ottsym("::")  ottmv("T")  =  ottkw("let") thin ottsym("{")  ottmv("v")  ottsym("::")  ottmv("T")  ottsym(";")  ottmv("v") thin ottsym("=")  ottnt("e")  ottsym("}") thin ottkw("in") thin ottmv("v")$,
+  conclusion: $ottnt("e")  ottsym("::")  ottnt("t")  =  ottkw("let") thin ottsym("{")  ottmv("v")  ottsym("::")  ottnt("t")  ottsym(";")  ottmv("v") thin ottsym("=")  ottnt("e")  ottsym("}") thin ottkw("in") thin ottmv("v")$,
   name: ottdrulename("sig"),
+  com: [])
+
+#let ottdrulestrictXXcon(..args) = ottdrule(..args,
+  premises: (
+    ottpremise($ottkw("data") thin ottnt("cx")  ottsym("=>")  ottmv("T") thin ottmv("u"_(1)) thin  dots.h  thin ottmv("u"_(ottmv("k")))  ottsym("=")  ottnt("constrs"_(1))  ottsym("|")  ottmv("K") thin ottnt("s"_(1)) thin  dots.h  thin ottnt("s"_(ottmv("n")))  ottsym("|")  ottnt("constrs"_(2))$),
+    ottpremise($ottmv("x"_(1))  ottsym(",") thin  dots.h  thin ottsym(",")  ottmv("x"_(ottmv("n"))) thin "fresh"$),
+    ottpremise($ottnt("op"_(1))  ottsym("=") thin italic("apply") thin ottsym("(")  ottnt("s"_(1))  ottsym(")") quad  dots.h  quad ottnt("op"_(ottmv("n")))  ottsym("=") thin italic("apply") thin ottsym("(")  ottnt("s"_(ottmv("n")))  ottsym(")")$),
+    ottpremise($ottnt("e"_(0))  =  ottmv("K")$),
+    ottpremise($ottnt("e"_(1))  =  ottsym("(")  ottnt("e"_(0)) thin ottnt("op"_(1)) thin ottmv("x"_(1))  ottsym(")") quad  dots.h  quad ottnt("e"_(ottmv("n")))  =  ottsym("(")  ottnt("e"_(ottmv("n")-1)) thin ottnt("op"_(ottmv("n"))) thin ottmv("x"_(ottmv("n")))  ottsym(")")$),
+  ),
+  conclusion: $ottmv("K")  =  ottsym("\\")  ottmv("x"_(1)) thin  dots.h  thin ottmv("x"_(ottmv("n")))  ottsym("->")  ottnt("e"_(ottmv("n")))$,
+  name: ottdrulename("strict_con"),
   com: [])
 
 #let ottdrulecaseXXa(..args) = ottdrule(..args,
@@ -819,6 +907,7 @@ ottuserXXsyntax, ottafterlastrule
     ottusedrule(ottdrulerecXXcon()),
     ottusedrule(ottdrulerecXXupd()),
     ottusedrule(ottdrulesig()),
+    ottusedrule(ottdrulestrictXXcon()),
     ottusedrule(ottdrulecaseXXa()),
     ottusedrule(ottdrulecaseXXb()),
     ottusedrule(ottdrulecaseXXbXXlast()),
@@ -886,11 +975,51 @@ ottuserXXsyntax, ottafterlastrule
     ottusedrule(ottdrulepatXXbinding()),
   ))
 
+// defn types
+#let ottdrulefunXXtype(..args) = ottdrule(..args,
+  premises: (
+  ),
+  conclusion: $ottnt("t"_(1))  ottsym("->")  ottnt("t"_(2))  =  ottsym("(->)") thin ottnt("t"_(1)) thin ottnt("t"_(2))$,
+  name: ottdrulename("fun_type"),
+  com: [])
+
+#let ottdruletupleXXtype(..args) = ottdrule(..args,
+  premises: (
+  ),
+  conclusion: $ottsym("(")  ottnt("t"_(1))  ottsym(",") thin  dots.h  thin ottsym(",")  ottnt("t"_(ottmv("k")))  ottsym(")")  =   ottsym("(,") dots.h ottsym(",)")   thin  ottnt("t"_(1)) thin  dots.h  thin ottnt("t"_(ottmv("k")))$,
+  name: ottdrulename("tuple_type"),
+  com: [])
+
+#let ottdrulelistXXtype(..args) = ottdrule(..args,
+  premises: (
+  ),
+  conclusion: $ottsym("[")  ottnt("t")  ottsym("]")  =  ottsym("[]") thin ottnt("t")$,
+  name: ottdrulename("list_type"),
+  com: [])
+
+#let ottdruleparenXXtype(..args) = ottdrule(..args,
+  premises: (
+  ),
+  conclusion: $ottsym("(")  ottnt("t")  ottsym(")")  =  ottnt("t")$,
+  name: ottdrulename("paren_type"),
+  com: [])
+
+#let ottdefntypes(..args) = ottdefnblock(..args,
+  judgement: $ottnt("t"_(1))  =  ottnt("t"_(2))$,
+  com: ottcom[the type $#($ottnt("t"_(1))$)$ is the type $#($ottnt("t"_(2))$)$],
+  rules: (
+    ottusedrule(ottdrulefunXXtype()),
+    ottusedrule(ottdruletupleXXtype()),
+    ottusedrule(ottdrulelistXXtype()),
+    ottusedrule(ottdruleparenXXtype()),
+  ))
+
 
 #let ottdefnsJtrans = {
   ottdefnequiv()
   ottdefnrhs()
   ottdefnbinds()
+  ottdefntypes()
 }
 
 #let ottdefnss = {

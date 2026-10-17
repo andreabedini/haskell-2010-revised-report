@@ -31,9 +31,11 @@ report's own format, Typst.
   passed to Ott first. Besides the default rule display, `show-name: false`
   gives a centred equation and `cells: true` the cells of a table row, as used
   for the table of `L`.
-- `doc/expressions.src.typ`: excerpts of Chapter 3 that use the generated
-  definitions. `[[ ... ]]` quotations are parsed by Ott as Haskell and replaced
-  with Typst math.
+- `doc/report.src.typ`: the parts of the report that are formalised, in the
+  report's order (Chapter 3, §4.1.2, §4.2.1, §4.4.3 and §10.3), with every
+  generated rule, and a closing section on what is not formalised.
+  `[[ ... ]]` quotations are parsed by Ott as Haskell and replaced with
+  Typst math.
 
 The file also covers the syntax of types (§4.1.2), with the identities for
 function, tuple, list and parenthesised types as axioms of a judgement
@@ -59,8 +61,8 @@ This writes the following files to `build/`:
 - `expressions.typ`: a Typst module with one definition per grammar rule and
   translation identity, for example `ottdruleif` or `ottgrammar`
 - `expressions.pdf`: the whole formalisation
-- `expressions.doc.pdf`: the Chapter 3 excerpts
 - `layout.typ`, `layout.pdf`: the same for the layout algorithm
+- `report.pdf`: the document, from `doc/report.src.typ`
 
 ## Differences from the report
 

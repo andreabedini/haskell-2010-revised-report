@@ -2,12 +2,12 @@
 OTT ?= ott
 TYPST ?= typst
 
-all: build/expressions.pdf build/expressions.doc.pdf build/layout.pdf
+all: build/expressions.pdf build/layout.pdf build/report.pdf
 
-build/expressions.typ build/expressions.doc.typ: ott/style.ott ott/expressions.ott doc/expressions.src.typ
+build/expressions.typ build/report.typ: ott/style.ott ott/expressions.ott doc/report.src.typ
 	@mkdir -p build
 	$(OTT) -i ott/style.ott -i ott/expressions.ott -o build/expressions.typ \
-	  -typst_filter doc/expressions.src.typ build/expressions.doc.typ
+	  -typst_filter doc/report.src.typ build/report.typ
 
 build/layout.typ: ott/style.ott ott/layout.ott
 	@mkdir -p build
@@ -16,7 +16,7 @@ build/layout.typ: ott/style.ott ott/layout.ott
 build/%.pdf: build/%.typ
 	$(TYPST) compile $< $@
 
-build/expressions.doc.pdf: build/expressions.typ
+build/report.pdf: build/expressions.typ build/layout.typ
 
 clean:
 	rm -rf build

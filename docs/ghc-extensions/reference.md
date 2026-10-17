@@ -217,13 +217,16 @@ is the `No` form.
 ## Where GHC's Haskell 2010 mode departs from the report
 
 These witnesses are valid by the report, but GHC 9.12.2 rejects them under
-`-XHaskell2010`. In each case GHC reserves syntax for an extension even when
+`-XHaskell2010`. In most cases GHC reserves syntax for an extension even when
 the extension is off, which makes that extension conservative over GHC's
-baseline but not over the report.
+baseline but not over the report. `StrictnessFlagSpace.hs` is different. GHC
+reads `!`, `~` and `@` according to the white space around them (GHC
+proposal #229, since GHC 9.0), and no extension turns this off.
 
 | Witness | By the report | GHC 9.12.2 |
 |---|---|---|
 | [`BangPatterns.hs`](witnesses/BangPatterns.hs) | `a !b = …` defines the operator `!`. | Reads `!b` as a bang pattern and rejects it, with or without `BangPatterns`. |
+| [`StrictnessFlagSpace.hs`](witnesses/StrictnessFlagSpace.hs) | `data T = MkT ! Int` and `{ f :: ! Int }` declare strict fields. | Reads `!` followed by a space as an infix operator and rejects both, with or without `BangPatterns` or `StrictData`. Writing `!Int` works. |
 | [`NumericUnderscores.hs`](witnesses/NumericUnderscores.hs) | `1_000` is `1` applied to the variable `_000`. | Rejects it; with `NumericUnderscores` it is `1000`. |
 | [`QualifiedDo.hs`](witnesses/QualifiedDo.hs) | `M.do` is the constructor `M` composed with a `do` block. | Rejects it; with `QualifiedDo` it is a qualified `do`. |
 | [`LineDirective.hs`](witnesses/LineDirective.hs) | A line starting with `#` is ordinary code. | Reads it as a line directive, with or without `CPP`. |

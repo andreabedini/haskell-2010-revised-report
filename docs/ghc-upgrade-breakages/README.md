@@ -242,9 +242,11 @@ to from 8.10.7. The change landed in 9.0.1.
   `constr → con [!] atype₁ … [!] atypeₖ` and
   `fielddecl → vars :: (type | ! atype)`. §2.4 makes `!` an ordinary
   `varsym`, with no rule about white space, so `MkT ! Int` is valid
-  Haskell 2010. This should join the deviations listed in
-  [GHC extensions](../ghc-extensions/reference.md#where-ghcs-haskell-2010-mode-departs-from-the-report),
-  next to the `BangPatterns` entry, which has the same cause.
+  Haskell 2010. The witness
+  [`StrictnessFlagSpace.hs`](../ghc-extensions/witnesses/StrictnessFlagSpace.hs)
+  is listed with the other deviations in
+  [GHC extensions](../ghc-extensions/reference.md#where-ghcs-haskell-2010-mode-departs-from-the-report).
+  It is rejected by GHC 9.4.8, 9.10.3, 9.12.2 and 9.14.1.
 
 ### L7
 
@@ -1088,10 +1090,6 @@ A1–A8 do not touch the language, but they break tools.
 
 ## Open items
 
-- L6 should be added to the deviations table in
-  [GHC extensions](../ghc-extensions/reference.md#where-ghcs-haskell-2010-mode-departs-from-the-report),
-  with a witness. `check-witnesses.sh` keys witnesses by extension, and this
-  deviation has none.
 - X1 and E5: root causes are not confirmed. L9: the exact sites in the
   unpublished report are not known.
 - B7 looks like an unreported regression. An issue could be filed upstream.

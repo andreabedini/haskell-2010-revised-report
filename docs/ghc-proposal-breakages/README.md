@@ -5,6 +5,8 @@ trace back to accepted GHC proposals. This document goes through every
 accepted proposal in the [ghc-proposals](https://github.com/ghc-proposals/ghc-proposals)
 repository. For each it compares the breakage the proposal anticipated with
 the breakage its implementation actually caused.
+[Lessons learned](../ghc-upgrade-breakages/lessons.md) draws conclusions from
+this review and the catalog, and suggests process changes.
 
 ## How proposals assess breakage
 

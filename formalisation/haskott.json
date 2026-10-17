@@ -1,0 +1,13 @@
+{
+  "specs": [
+    {
+      "files": ["ott/style.ott", "ott/expressions.ott"],
+      "picky": true,
+      "documents": ["doc/report.src.typ"]
+    },
+    {
+      "files": ["ott/style.ott", "ott/layout.ott"],
+      "picky": true
+    }
+  ]
+}

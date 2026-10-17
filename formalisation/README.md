@@ -67,6 +67,11 @@ This writes the following files to `build/`:
 - `layout.typ`, `layout.pdf`: the same for the layout algorithm
 - `report.pdf`: the document, from `doc/report.src.typ`
 
+`haskott.json` lists the same two specifications for the language server
+of haskott (`haskott lsp`), so
+that an editor checks, navigates and renames each `.ott` file together with
+the files it is built with, and renames in `doc/report.src.typ` too.
+
 ## Differences from the report
 
 - Ott dot forms cannot express nested ellipses such as

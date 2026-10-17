@@ -363,6 +363,43 @@ However, `double` may not normally be applied to values
 of type `Char`, because `Char` is not normally an instance of class `Num`.
 The user may choose to declare such an instance, in which case `double` may indeed be applied to a `Char`.
 
+#issue-box[Principal types][
+  The claim above that every expression has a principal type does not hold
+  for Haskell 2010 as specified. Faxén gives a counterexample that depends
+  on the monomorphism restriction @faxen:static:
+  ```haskell
+  class IsNil a where
+    isNil :: a -> Bool
+  instance IsNil [b] where
+    isNil [] = True
+    isNil _  = False
+
+  f x y = let g = isNil in (g x, g y)
+  ```
+  Rule~1 of the monomorphism restriction (@sec:monomorphism-restriction)
+  stops `g` from being given the type
+  $forall a. mono("IsNil") a => a -> mono("Bool")$. Two typings of `g`
+  remain: $forall b. [b] -> mono("Bool")$, and $a -> mono("Bool")$ with $a$
+  left monomorphic. They give `f` the incomparable types
+  $forall a, b. [a] -> [b] -> (mono("Bool"), mono("Bool"))$ and
+  $forall a. mono("IsNil") a => a -> a -> (mono("Bool"), mono("Bool"))$.
+  GHC 9.12.2 infers the second.
+
+  The generalization preorder also cannot tell an ambiguous type from an
+  unambiguous one. In a class environment where `Int` is an instance of
+  `Show` and `Read`, each of
+  $forall a. (mono("Show") a, mono("Read") a) => mono("String")$ and
+  $mono("String")$ is more general than the other: take
+  $S = [mono("Int") mono("/") a]$ in one direction and the empty
+  substitution in the other. Principal types are defined only up to this
+  equivalence, so the test for ambiguity in @sec:default-decls, which looks
+  at the type of an expression, has no well-defined type to look at.
+
+  To resolve: either restrict the claim and state which typing the
+  monomorphism restriction selects, or define the static semantics by an
+  inference algorithm, as in _Typing Haskell in Haskell_ @jones:thih.
+]
+
 == User-Defined Datatypes <sec:user-defined-datatypes>
 
 In this section, we describe algebraic datatypes (`data`
@@ -446,6 +483,35 @@ For example:
 ```
 the function `f` has inferred type `Eq a => Set a -> a`.
 The context in the  `data` declaration has no other effect whatsoever.
+
+#issue-box[Datatype contexts][
+  Faxén observes that datatype contexts play no part in the translation of
+  a program: the evidence a constructor's context demands is never used,
+  so the feature only moves type errors from one part of a program to
+  another. It still accounts for much of the complexity of the typing
+  rules for field labels @faxen:static. The sentence above is also
+  inaccurate: through the translation of field selectors
+  (@sec:field-ops), the context constrains selector functions too.
+
+  GHC deprecates the feature. GHC 9.12.2 warns that `DatatypeContexts`
+  "was widely considered a misfeature, and has been removed from the
+  Haskell language". This revision removes datatype contexts from the
+  standard libraries but keeps them in the language (see the preface).
+  GHC also departs from this section in two ways:
+  - For `data (Monad m, Eq (m a)) => Foo a m = ConA a Int | ...` this
+    section gives `ConA` an empty context, because `Eq (m a)` constrains
+    `m`, which is not free in the argument types of `ConA`. GHC 9.12.2
+    requires `Eq (m a)` wherever `ConA` is used.
+  - When a field is shared by constructors with different contexts, GHC
+    gives the generated selector the context of only one of them, and the
+    selector then fails to type-check. GHC 9.10, 9.12 and 9.14 all reject
+    Faxén's example datatype
+    `data (Monad m, Eq (m a)) => Foo a m = ConA {x :: a, w :: Int} | ConB {y :: m Int, w :: Int} | ConC {z :: m a}`.
+
+  To resolve: either remove datatype contexts from the language, or keep
+  them and specify their effect on selectors, updates and patterns
+  directly.
+]
 
 The visibility of a datatype's constructors (i.e.~the "abstractness"
 of the datatype) outside of the module in which the datatype is
@@ -732,6 +798,21 @@ of declarations:
 
 Other than these cases, no other declarations are permitted in $italic("cdecls")$.
 
+#issue-box[Typing of default and instance methods][
+  The report calls a default class method "a normal value definition", but
+  does not say what type it is checked against. Faxén argues that only one
+  choice makes sense: the default method for $v_i$ is checked against the
+  full type of the method,
+  $forall u, safeoverline(w). (C u, italic("cx")_i) mono("=>") t_i$, so its
+  body can use the methods of $C$ and of its superclasses at type $u$
+  @faxen:static. The report should state this.
+
+  Method bindings in instance declarations (@sec:instance-decl) have the
+  same gap. Their expected type, $t_i [(T u_1 dots u_k) mono("/") u]$ under
+  the contexts $italic("cx")'$ and $italic("cx")_i$, is implied only by the
+  conditions on the instance context.
+]
+
 A `class` declaration with no `where` part
 may be useful for combining a
 collection of classes into a larger one that inherits all of the
@@ -944,6 +1025,39 @@ but not in $t$.  Such types are invalid.
 For example, the earlier expression involving `show` and `read` has
 an ambiguous type since its type is 
 $forall a. mono("Show") a, mono("Read") a => mono("String")$.
+
+#issue-box[Ambiguity and coherence][
+  The rule above constrains the type of an expression, but a typing
+  derivation does not have to produce the ambiguous type: it can
+  instantiate `a` at the start. The expression `show (read "...")` can be
+  typed as `String` by choosing `a` to be `Int`, or `Bool`. The two
+  derivations translate to programs that use different `Read` and `Show`
+  dictionaries, so they mean different things. Faxén could not write
+  inference rules that exclude such derivations, and his static semantics
+  leaves ambiguity out @faxen:static.
+
+  The property this rule protects is _coherence_: all valid typings of a
+  program have the same meaning. The report never states it. Jones shows
+  that a core language with qualified types is coherent when the principal
+  type of a program is unambiguous @jones:coherence. That argument relies
+  on principal types, which Haskell 2010 lacks (see @sec:type-semantics).
+
+  The defaulting rules below have a related problem. They apply "in
+  situations where an ambiguous type is discovered", which describes a
+  step of an inference algorithm, not a property of the program. The only
+  statement of when defaulting happens is Rule~2 of the monomorphism
+  restriction (@sec:monomorphism-restriction), which applies once type
+  inference for the whole module is complete.
+
+  To resolve, choose one of:
+  - specify ambiguity and defaulting by an inference algorithm
+    @jones:thih;
+  - find inference rules that admit only one derivation for each
+    expression, as Faxén suggests;
+  - keep declarative rules for the meaning of a program, and add a
+    reference algorithm that decides which programs are accepted,
+    including ambiguity and defaulting.
+]
 
 Ambiguous types can only be circumvented by
 input from the user.  One way is through the use of _expression
@@ -1514,6 +1628,24 @@ The following two rules define the monomorphism restriction:
     rules (@sec:default-decls).
 ])
 
+#issue-box[The monomorphism restriction as a typing rule][
+  Rule~1 says that the constrained type variables of a restricted group
+  "may not be generalized", but not that they must stay unresolved. A
+  typing derivation may instead instantiate them, and this is why Haskell
+  2010 lacks principal types (see the example in @sec:type-semantics). In
+  that example GHC leaves the constrained variable of `g` monomorphic and
+  moves the constraint `IsNil a` out to `f`. If that is the intended
+  reading, the report should say so.
+
+  Faxén's rules include Rule~1, as his `MonoRes` predicate, but not Rule~2,
+  because his semantics leaves out defaulting @faxen:static. Rule~2 refers
+  to the point "when type inference for an entire module is complete",
+  which is a step of an algorithm, not a property of the program. A
+  declarative version would say which instantiation of the remaining
+  monomorphic type variables the typing of the module must choose. See
+  also the issue in @sec:default-decls.
+]
+
 *Motivation* Rule 1 is required for two reasons, both of which are fairly subtle.
 
 - _Rule 1 prevents computations from being unexpectedly repeated._
@@ -1645,6 +1777,44 @@ function constructor `(->)` in the type of `bar` and hence must
 have kind $ast$.  It follows that both `D` and `S` must have
 kind $ast -> ast$ and that every instance of class `C` must
 have kind $ast$.
+
+#issue-box[Dependency groups for kind inference][
+  The report forms dependency groups "in much the same way" as for value
+  bindings, but does not say which occurrences of a type or class name
+  create a dependency. In question are occurrences in `deriving` clauses,
+  in type signatures inside default class methods, and in the type
+  signatures of ordinary values.
+
+  Faxén proposes that only occurrences that contribute to a declaration's
+  kind count: those in `data` and `type` declarations other than in
+  `deriving` clauses, and those in the superclass context and method
+  signatures of a class, but not those inside default class methods
+  @faxen:static. Under that rule this program is ill-kinded:
+  ```haskell
+  class C a where
+    op :: d a
+    op = let x :: C b => T b c
+             x = undefined
+         in undefined
+
+  data C a => T a b = MkT (a b)
+  ```
+  Here `C` forms a group on its own, the kind of its parameter defaults to
+  $ast$, and `T` then fails to kind-check because its context applies `C`
+  to `a`, of kind $ast -> ast$. GHC 9.10, 9.12 and 9.14 accept the program
+  and give the parameter of `C` the kind $ast -> ast$, so GHC counts the
+  signature inside the default method. If the body of `op` is moved to a
+  top-level function, GHC rejects the program. That dependence on where
+  the signature appears is what Faxén's rule avoids.
+
+  This section also does not say how the type variables in a type
+  signature are kinded. Faxén kinds each signature separately, defaulting
+  its variables to $ast$. The exception is the class variable in a method
+  signature, whose kind is fixed by the class.
+
+  To resolve: define the dependency relation used for kind inference, and
+  the kinding of type signatures.
+]
 
 It is possible that some parts of an inferred kind may not be fully
 determined by the corresponding definitions; in such cases, a default

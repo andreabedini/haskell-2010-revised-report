@@ -836,6 +836,27 @@ without field labels.
 A compile-time error will result if no single constructor
 defines the set of field labels used in an update, such as `x {f2 = 1, f3 = 'x'}`.
 
+#issue-box[Typing of field selection, construction and update][
+  Field selectors, labelled construction and update get their types only
+  through the translations above, so a static semantics has to anticipate
+  those translations @faxen:static. Two consequences should be stated
+  directly:
+  - An update can change the type of the value. With
+    `data T a = C1 { f :: a, g :: Int }`, the expression `e { f = 'x' }`
+    has type `T Char` whatever the type of `e` (GHC 9.12.2 infers
+    `T a -> T Char` for `\e -> e { f = 'x' }`). A type parameter can differ
+    between `e` and the result unless it occurs in a field, not mentioned
+    in the update, of a constructor that has all the updated fields.
+  - When the datatype has a context (@sec:datatype-decls), the context of a
+    selector is the union of the contexts of the constructors that have the
+    field, and an update needs the context of each such constructor at both
+    the old and the new type.
+
+  Faxén notes that the rules would be much simpler if `e { ... }` always
+  had the same type as `e`. That would be a language change, and GHC
+  accepts updates that change the type.
+]
+
 == Expression Type-Signatures <sec:expression-type-sigs>
 
 
@@ -850,6 +871,14 @@ the principal type derivable from $italic("exp")$, but it is an error to give a 
 #translation-box[
   The following identity holds:
   #ottdrulesig(show-name: false)
+]
+
+#issue-box[Dependence on principal types][
+  This section and @sec:type-signatures check a declared type against "the
+  principal type" of an expression. Haskell 2010 does not always have
+  principal types (see @sec:type-semantics), so these checks need
+  restating, for example by requiring that the expression can be typed at
+  the declared type.
 ]
 
 == Pattern Matching <sec:pattern-matching>

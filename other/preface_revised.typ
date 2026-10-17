@@ -9,6 +9,17 @@ This revised report is the result of that effort.
 In distinction to the previous version of the Haskell 2010 language report, this revision separates out documentation of the standard libraries.
 These standard libraries are now available in the form of a zero-dependency Haskell package which makes the API specification machine readable and allows to generate documentation using standard Haskell tools like Haddock.
 
+#if show-issues [
+  #heading(level: 2, numbering: none)[Open Issues]
+
+  Boxes headed "Open issue" mark places where the static semantics is
+  vague, inconsistent, or disagrees with implementations, and which a
+  later revision should resolve.
+  Most of them come from Faxén's formalisation of the Haskell 98 type
+  system @faxen:static.
+  They are editorial annotations, not part of the specification.
+]
+
 
 #heading(level: 2, numbering: none)[Changes to the  Report]
 

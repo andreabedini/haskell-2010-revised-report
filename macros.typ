@@ -30,6 +30,31 @@
   }
 }
 
+/// Whether open-issue annotations are shown.  Pass `--input issues=hide` to
+/// typst to leave them out of the output.
+#let show-issues = sys.inputs.at("issues", default: "show") != "hide"
+
+/// A box recording an open issue in the specification: a place where the
+/// report is vague, inconsistent, or disagrees with implementations.
+#let issue-box(title, x) = context {
+  if not show-issues {
+    none
+  } else if target() == "paged" {
+    // Code for PDF output
+    block(
+      stroke: (paint: orange.darken(30%), thickness: 1pt, dash: "dashed"),
+      width: 100%,
+      inset: 10pt,
+      [*Open issue: #title*\ #x]
+    )
+  } else {
+    // Code for HTML output
+    html.elem("div", attrs: (class: "issue-box"))[
+      *Open issue: #title*\ #x
+    ]
+  }
+}
+
 #let monomorphism-box(x) = context {
   if target() == "paged" {
     // Code for PDF output

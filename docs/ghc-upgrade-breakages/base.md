@@ -63,7 +63,8 @@ Unpublished (9.6 → 9.8).
   with the warning categories of [CLC #114](https://github.com/haskell/core-libraries-committee/issues/114)
   and GHC proposal #541. Shipped in base-4.19, GHC 9.8.1
   ([migration guide](https://github.com/haskell/core-libraries-committee/blob/main/guides/warning-for-head-and-tail.md)).
-  base-4.23 extends the warning to `init` and `last`.
+  base-4.23 extends the warning to `init` and `last`
+  ([F6](ghc-10.0.md#f6)).
 - **Mitigation.** FC: `-Wno-x-partial -Wno-unrecognised-warning-flags`, or
   rewrite the code.
 - **Report.** §9.1 defines `head` and `tail` as partial functions. Haskell

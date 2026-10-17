@@ -36,6 +36,11 @@ how GHC and its libraries evolve.
   on the new GHC.
 - [Tooling](tooling.md): Cases caused by a change in a build tool or developer
   tool.
+- [GHC 10.0: expected breakage](ghc-10.0.md): Changes in GHC 10.0 that
+  resemble catalogued cases. Nobody has reported them yet, so they have
+  their own prefix, F, and are not counted in the catalog.
+- [Activity on the GHC repository](activity.md): Commits, contributors,
+  issues, merge requests and reviews per year and per release cycle.
 - [Against GHC's stability principles](stability.md): The catalog assessed
   against the GHC stability principles and the goals of the State of Play.
 - [Lessons learned](lessons.md): What went wrong across the catalog and the
@@ -151,6 +156,8 @@ case touches, or "—" when the case is outside the report.
   unpublished report are not known.
 - B7 looks like an unreported regression. An issue could be filed upstream.
 - W3's message suggests enabling `GADTs` even when it is already on.
+- [GHC 10.0](ghc-10.0.md#open-items): check the expected cases F1–F22
+  against a 10.0 release, and move the confirmed ones into the catalog.
 - Witnesses for the language cases could go next to
   [`../ghc-extensions/witnesses`](../ghc-extensions/witnesses), and be
   checked against several GHC versions.

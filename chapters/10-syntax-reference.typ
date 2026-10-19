@@ -1,5 +1,5 @@
 #import "../macros.typ" : *
-#import "../ott/layout.typ" : *
+#import "../formalisation/typst/layout.typ" : *
 
 == Notational Conventions
 

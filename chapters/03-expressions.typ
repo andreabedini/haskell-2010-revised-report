@@ -1,5 +1,5 @@
 #import "../macros.typ" : *
-#import "../ott/expressions.typ" : *
+#import "../formalisation/typst/expressions.typ" : *
 
 In this chapter, we describe the syntax and informal semantics of
 Haskell _expressions_, including their translations into the

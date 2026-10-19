@@ -4,9 +4,11 @@ An experiment in formalising parts of the
 Haskell 2010 revised report with [Ott](https://github.com/ott-lang/ott), and
 typesetting the result in the report's own format, Typst.
 
-The report includes the generated rules from `ott/expressions.typ` and
-`ott/layout.typ` at the top of this repository. Run
-`make regenerate-ott OTT=/path/to/ott` there after changing the files here.
+The report includes the generated rules from `typst/expressions.typ` and
+`typst/layout.typ`, which are committed so that building the report does not
+need Ott. Run `make typst OTT=/path/to/ott` here, or
+`make regenerate-ott OTT=/path/to/ott` at the top of this repository, after
+changing the `.ott` files.
 
 ## Contents
 
@@ -34,6 +36,9 @@ The report includes the generated rules from `ott/expressions.typ` and
   passed to Ott first. Besides the default rule display, `show-name: false`
   gives a centred equation and `cells: true` the cells of a table row, as used
   for the table of `L`.
+- `typst/expressions.typ`, `typst/layout.typ`: the generated modules that the
+  report imports, written by `make typst` without the document wrapper of the
+  files in `build/`.
 - `doc/report.src.typ`: the parts of the report that are formalised, in the
   report's order (Chapter 3, §4.1.2, §4.2.1, §4.4.3 and §10.3), with every
   generated rule, and a closing section on what is not formalised.
